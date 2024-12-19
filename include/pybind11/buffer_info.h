@@ -10,6 +10,7 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/non_limited_api.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
@@ -44,6 +45,8 @@ PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
+    friend void non_limited_api::pybind11NLA_buffer_info_ctor(buffer_info &self, Py_buffer *view, bool ownview);
+
     void *ptr = nullptr;          // Pointer to the underlying storage
     ssize_t itemsize = 0;         // Size of individual items in bytes
     ssize_t size = 0;             // Total number of entries
@@ -105,23 +108,8 @@ struct buffer_info {
               const_cast<T *>(ptr), sizeof(T), format_descriptor<T>::format(), size, readonly) {}
 
     explicit buffer_info(Py_buffer *view, bool ownview = true)
-        : buffer_info(
-              view->buf,
-              view->itemsize,
-              view->format,
-              view->ndim,
-              {view->shape, view->shape + view->ndim},
-              /* Though buffer::request() requests PyBUF_STRIDES, ctypes objects
-               * ignore this flag and return a view with NULL strides.
-               * When strides are NULL, build them manually.  */
-              view->strides
-                  ? std::vector<ssize_t>(view->strides, view->strides + view->ndim)
-                  : detail::c_strides({view->shape, view->shape + view->ndim}, view->itemsize),
-              (view->readonly != 0)) {
-        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-        this->m_view = view;
-        // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
-        this->ownview = ownview;
+    {
+        non_limited_api::buffer_info_ctor(*this, view, ownview);
     }
 
     buffer_info(const buffer_info &) = delete;
@@ -145,8 +133,8 @@ struct buffer_info {
 
     ~buffer_info() {
         if (m_view && ownview) {
-            PyBuffer_Release(m_view);
-            delete m_view;
+            non_limited_api::PyBuffer_Release(m_view);
+            non_limited_api::PyBuffer_delete(m_view);
         }
     }
 

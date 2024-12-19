@@ -446,7 +446,7 @@
 \endrst */
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
-#define PYBIND11_MODULE(name, variable, ...)                                                      \
+#define PYBIND11_MODULE_OLD(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
     PYBIND11_MAYBE_UNUSED                                                                         \
@@ -1177,7 +1177,7 @@ public:
 };
 
 // Forward-declaration; see detail/class.h
-std::string get_fully_qualified_tp_name(PyTypeObject *);
+inline std::string get_fully_qualified_tp_name(PyTypeObject *type);
 
 template <typename T>
 inline static std::shared_ptr<T>

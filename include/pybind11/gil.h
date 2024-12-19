@@ -19,13 +19,6 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-PYBIND11_NAMESPACE_BEGIN(detail)
-
-// forward declarations
-PyThreadState *get_thread_state_unchecked();
-
-PYBIND11_NAMESPACE_END(detail)
-
 #if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 
 /* The functions below essentially reproduce the PyGILState_* API using a RAII
@@ -51,69 +44,20 @@ PYBIND11_NAMESPACE_END(detail)
  */
 
 class gil_scoped_acquire {
+    friend void non_limited_api::pybind11NLA_gil_scoped_acquire_ctor(gil_scoped_acquire &self);
+    friend void non_limited_api::pybind11NLA_gil_scoped_acquire_inc_ref(gil_scoped_acquire &self);
+    friend void non_limited_api::pybind11NLA_gil_scoped_acquire_dec_ref(gil_scoped_acquire &self);
+
 public:
-    PYBIND11_NOINLINE gil_scoped_acquire() {
-        auto &internals = detail::get_internals();
-        tstate = (PyThreadState *) PYBIND11_TLS_GET_VALUE(internals.tstate);
-
-        if (!tstate) {
-            /* Check if the GIL was acquired using the PyGILState_* API instead (e.g. if
-               calling from a Python thread). Since we use a different key, this ensures
-               we don't create a new thread state and deadlock in PyEval_AcquireThread
-               below. Note we don't save this state with internals.tstate, since we don't
-               create it we would fail to clear it (its reference count should be > 0). */
-            tstate = PyGILState_GetThisThreadState();
-        }
-
-        if (!tstate) {
-            tstate = PyThreadState_New(internals.istate);
-#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            if (!tstate) {
-                pybind11_fail("scoped_acquire: could not create thread state!");
-            }
-#    endif
-            tstate->gilstate_counter = 0;
-            PYBIND11_TLS_REPLACE_VALUE(internals.tstate, tstate);
-        } else {
-            release = detail::get_thread_state_unchecked() != tstate;
-        }
-
-        if (release) {
-            PyEval_AcquireThread(tstate);
-        }
-
-        inc_ref();
+    gil_scoped_acquire() {
+        non_limited_api::gil_scoped_acquire_ctor(*this);
     }
 
     gil_scoped_acquire(const gil_scoped_acquire &) = delete;
     gil_scoped_acquire &operator=(const gil_scoped_acquire &) = delete;
 
-    void inc_ref() { ++tstate->gilstate_counter; }
-
-    PYBIND11_NOINLINE void dec_ref() {
-        --tstate->gilstate_counter;
-#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-        if (detail::get_thread_state_unchecked() != tstate) {
-            pybind11_fail("scoped_acquire::dec_ref(): thread state must be current!");
-        }
-        if (tstate->gilstate_counter < 0) {
-            pybind11_fail("scoped_acquire::dec_ref(): reference count underflow!");
-        }
-#    endif
-        if (tstate->gilstate_counter == 0) {
-#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            if (!release) {
-                pybind11_fail("scoped_acquire::dec_ref(): internal error!");
-            }
-#    endif
-            PyThreadState_Clear(tstate);
-            if (active) {
-                PyThreadState_DeleteCurrent();
-            }
-            PYBIND11_TLS_DELETE_VALUE(detail::get_internals().tstate);
-            release = false;
-        }
-    }
+    void inc_ref() { non_limited_api::gil_scoped_acquire_inc_ref( *this ); }
+    void dec_ref() { non_limited_api::gil_scoped_acquire_dec_ref( *this ); }
 
     /// This method will disable the PyThreadState_DeleteCurrent call and the
     /// GIL won't be acquired. This method should be used if the interpreter
@@ -139,7 +83,7 @@ class gil_scoped_release {
 public:
     // PRECONDITION: The GIL must be held when this constructor is called.
     explicit gil_scoped_release(bool disassoc = false) : disassoc(disassoc) {
-        assert(PyGILState_Check());
+        assert(non_limited_api::PyGILState_Check());
         // `get_internals()` must be called here unconditionally in order to initialize
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.

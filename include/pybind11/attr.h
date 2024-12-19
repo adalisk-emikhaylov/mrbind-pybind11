@@ -331,35 +331,9 @@ struct type_record {
     /// Is the class inheritable from python classes?
     bool is_final : 1;
 
-    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
-        auto *base_info = detail::get_type_info(base, false);
-        if (!base_info) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name)
-                          + "\" referenced unknown base type \"" + tname + "\"");
-        }
-
-        if (default_holder != base_info->default_holder) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (default_holder ? "does not have" : "has")
-                          + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_info->default_holder ? "does not" : "does"));
-        }
-
-        bases.append((PyObject *) base_info->type);
-
-#if PY_VERSION_HEX < 0x030B0000
-        dynamic_attr |= base_info->type->tp_dictoffset != 0;
-#else
-        dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
-#endif
-
-        if (caster) {
-            base_info->implicit_casts.emplace_back(type, caster);
-        }
+    void add_base(const std::type_info &base, void *(*caster)(void *) )
+    {
+        non_limited_api::type_record_add_base( *this, base, caster );
     }
 };
 

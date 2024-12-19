@@ -90,7 +90,7 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (auto cfunc = func.cpp_function()) {
-            auto *cfunc_self = PyCFunction_GET_SELF(cfunc.ptr());
+            auto *cfunc_self = non_limited_api::PyCFunction_GET_SELF_(cfunc.ptr());
             if (cfunc_self == nullptr) {
                 PyErr_Clear();
             } else if (isinstance<capsule>(cfunc_self)) {

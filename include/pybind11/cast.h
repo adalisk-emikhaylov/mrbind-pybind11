@@ -347,49 +347,13 @@ class type_caster<std::nullptr_t> : public void_caster<std::nullptr_t> {};
 
 template <>
 class type_caster<bool> {
+    friend bool non_limited_api::pybind11NLA_type_caster_bool_load(type_caster<bool> &self, handle src, bool convert);
+
 public:
     bool load(handle src, bool convert) {
-        if (!src) {
-            return false;
-        }
-        if (src.ptr() == Py_True) {
-            value = true;
-            return true;
-        }
-        if (src.ptr() == Py_False) {
-            value = false;
-            return true;
-        }
-        if (convert || is_numpy_bool(src)) {
-            // (allow non-implicit conversion for numpy booleans), use strncmp
-            // since NumPy 1.x had an additional trailing underscore.
-
-            Py_ssize_t res = -1;
-            if (src.is_none()) {
-                res = 0; // None is implicitly converted to False
-            }
-#if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" attr exists
-            else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
-                res = PyObject_IsTrue(src.ptr());
-            }
-#else
-            // Alternate approach for CPython: this does the same as the above, but optimized
-            // using the CPython API so as to avoid an unneeded attribute lookup.
-            else if (auto *tp_as_number = Py_TYPE(src.ptr())->tp_as_number) {
-                if (PYBIND11_NB_BOOL(tp_as_number)) {
-                    res = (*PYBIND11_NB_BOOL(tp_as_number))(src.ptr());
-                }
-            }
-#endif
-            if (res == 0 || res == 1) {
-                value = (res != 0);
-                return true;
-            }
-            PyErr_Clear();
-        }
-        return false;
+        return non_limited_api::type_caster_bool_load(*this, src, convert);
     }
+
     static handle cast(bool src, return_value_policy /* policy */, handle /* parent */) {
         return handle(src ? Py_True : Py_False).inc_ref();
     }
@@ -397,11 +361,8 @@ public:
 
 private:
     // Test if an object is a NumPy boolean (without fetching the type).
-    static inline bool is_numpy_bool(handle object) {
-        const char *type_name = Py_TYPE(object.ptr())->tp_name;
-        // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-        return std::strcmp("numpy.bool", type_name) == 0
-               || std::strcmp("numpy.bool_", type_name) == 0;
+    static bool is_numpy_bool(handle object) {
+        return non_limited_api::type_caster_bool_is_numpy_bool(object);
     }
 };
 
@@ -759,7 +720,7 @@ protected:
         tuple result(size);
         int counter = 0;
         for (auto &entry : entries) {
-            PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
+            non_limited_api::PyTuple_SET_ITEM_(result.ptr(), counter++, entry.release().ptr());
         }
         return result.release();
     }
@@ -1454,7 +1415,7 @@ tuple make_tuple(Args &&...args_) {
     tuple result(size);
     int counter = 0;
     for (auto &arg_value : args) {
-        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+        non_limited_api::PyTuple_SET_ITEM_(result.ptr(), counter++, arg_value.release().ptr());
     }
     return result;
 }
@@ -1870,7 +1831,7 @@ template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
 #ifndef NDEBUG
-    if (!PyGILState_Check()) {
+    if (!non_limited_api::PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }
 #endif

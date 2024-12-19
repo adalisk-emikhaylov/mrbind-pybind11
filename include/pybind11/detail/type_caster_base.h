@@ -111,57 +111,8 @@ inline void all_type_info_add_base_most_derived_first(std::vector<type_info *> &
 }
 
 // Populates a just-created cache entry.
-PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
-    assert(bases.empty());
-    std::vector<PyTypeObject *> check;
-    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
-        check.push_back((PyTypeObject *) parent.ptr());
-    }
-    auto const &type_dict = get_internals().registered_types_py;
-    for (size_t i = 0; i < check.size(); i++) {
-        auto *type = check[i];
-        // Ignore Python2 old-style class super type:
-        if (!PyType_Check((PyObject *) type)) {
-            continue;
-        }
-
-        // Check `type` in the current set of registered python types:
-        auto it = type_dict.find(type);
-        if (it != type_dict.end()) {
-            // We found a cache entry for it, so it's either pybind-registered or has pre-computed
-            // pybind bases, but we have to make sure we haven't already seen the type(s) before:
-            // we want to follow Python/virtual C++ rules that there should only be one instance of
-            // a common base.
-            for (auto *tinfo : it->second) {
-                // NB: Could use a second set here, rather than doing a linear search, but since
-                // having a large number of immediate pybind11-registered types seems fairly
-                // unlikely, that probably isn't worthwhile.
-                bool found = false;
-                for (auto *known : bases) {
-                    if (known == tinfo) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    all_type_info_add_base_most_derived_first(bases, tinfo);
-                }
-            }
-        } else if (type->tp_bases) {
-            // It's some python type, so keep follow its bases classes to look for one or more
-            // registered types
-            if (i + 1 == check.size()) {
-                // When we're at the end, we can pop off the current element to avoid growing
-                // `check` when adding just one base (which is typical--i.e. when there is no
-                // multiple inheritance)
-                check.pop_back();
-                i--;
-            }
-            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
-                check.push_back((PyTypeObject *) parent.ptr());
-            }
-        }
-    }
+inline void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+    non_limited_api::all_type_info_populate(t, bases);
 }
 
 /**
@@ -449,16 +400,6 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
         }
         return handle();
     });
-}
-
-inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x030D0000
-    return _PyThreadState_UncheckedGet();
-#else
-    return PyThreadState_GetUnchecked();
-#endif
 }
 
 // Forward declarations

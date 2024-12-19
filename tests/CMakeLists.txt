@@ -476,6 +476,8 @@ foreach(target ${test_targets})
 
   target_link_libraries(${target} PRIVATE ${STD_FS_LIB})
 
+  target_link_libraries(${target} PRIVATE pybind11nonlimitedapi_stubs)
+
   # Always write the output file directly into the 'tests' directory (even on MSVC)
   if(NOT CMAKE_LIBRARY_OUTPUT_DIRECTORY)
     set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY

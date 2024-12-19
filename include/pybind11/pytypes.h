@@ -225,6 +225,11 @@ PYBIND11_NAMESPACE_END(detail)
 \endrst */
 class handle : public detail::object_api<handle> {
 public:
+    friend void non_limited_api::pybind11NLA_handle_throw_gilstate_error(const handle &self, const std::string &function_name);
+    friend buffer_info non_limited_api::pybind11NLA_buffer_request(const buffer &self, bool writable);
+    friend void non_limited_api::pybind11NLA_memoryview_ctor(memoryview &self, const buffer_info &info);
+    friend void pybind11::non_limited_api::pybind11NLA_generic_type_install_buffer_funcs(detail::generic_type &self, buffer_info *(*get_buffer)(PyObject *, void *), void *get_buffer_data);
+
     /// The default constructor creates a handle with a ``nullptr``-valued pointer
     handle() = default;
 
@@ -260,7 +265,7 @@ public:
         inc_ref_counter(1);
 #endif
 #ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
-        if (m_ptr != nullptr && !PyGILState_Check()) {
+        if (m_ptr != nullptr && !non_limited_api::PyGILState_Check()) {
             throw_gilstate_error("pybind11::handle::inc_ref()");
         }
 #endif
@@ -275,7 +280,7 @@ public:
     \endrst */
     const handle &dec_ref() const & {
 #ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
-        if (m_ptr != nullptr && !PyGILState_Check()) {
+        if (m_ptr != nullptr && !non_limited_api::PyGILState_Check()) {
             throw_gilstate_error("pybind11::handle::dec_ref()");
         }
 #endif
@@ -306,30 +311,10 @@ protected:
     PyObject *m_ptr = nullptr;
 
 private:
-#ifdef PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
-    void throw_gilstate_error(const std::string &function_name) const {
-        fprintf(
-            stderr,
-            "%s is being called while the GIL is either not held or invalid. Please see "
-            "https://pybind11.readthedocs.io/en/stable/advanced/"
-            "misc.html#common-sources-of-global-interpreter-lock-errors for debugging advice.\n"
-            "If you are convinced there is no bug in your code, you can #define "
-            "PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF "
-            "to disable this check. In that case you have to ensure this #define is consistently "
-            "used for all translation units linked into a given pybind11 extension, otherwise "
-            "there will be ODR violations.",
-            function_name.c_str());
-        if (Py_TYPE(m_ptr)->tp_name != nullptr) {
-            fprintf(stderr,
-                    " The failing %s call was triggered on a %s object.",
-                    function_name.c_str(),
-                    Py_TYPE(m_ptr)->tp_name);
-        }
-        fprintf(stderr, "\n");
-        fflush(stderr);
-        throw std::runtime_error(function_name + " PyGILState_Check() failure.");
+    void throw_gilstate_error(const std::string &function_name) const
+    {
+        non_limited_api::handle_throw_gilstate_error(*this, function_name);
     }
-#endif
 
 #ifdef PYBIND11_HANDLE_REF_DEBUG
     static std::size_t inc_ref_counter(std::size_t add) {
@@ -363,6 +348,9 @@ inline void set_error(const handle &type, const handle &value) {
 \endrst */
 class object : public handle {
 public:
+    friend pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_memory(void *mem, ssize_t size, bool readonly);
+    friend pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_buffer(void *ptr, ssize_t itemsize, const char *format, detail::any_container<ssize_t> shape, detail::any_container<ssize_t> strides, bool readonly);
+
     object() = default;
     PYBIND11_DEPRECATED("Use reinterpret_borrow<object>() or reinterpret_steal<object>()")
     object(handle h, bool is_borrowed) : handle(h) {
@@ -484,11 +472,9 @@ T reinterpret_steal(handle h) {
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
-inline const char *obj_class_name(PyObject *obj) {
-    if (PyType_Check(obj)) {
-        return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
-    }
-    return Py_TYPE(obj)->tp_name;
+inline const char *obj_class_name(PyObject *obj)
+{
+    return non_limited_api::obj_class_name(obj);
 }
 
 std::string error_string();
@@ -571,127 +557,9 @@ struct error_fetch_and_normalize {
     error_fetch_and_normalize(const error_fetch_and_normalize &) = delete;
     error_fetch_and_normalize(error_fetch_and_normalize &&) = delete;
 
-    std::string format_value_and_trace() const {
-        std::string result;
-        std::string message_error_string;
-        if (m_value) {
-            auto value_str = reinterpret_steal<object>(PyObject_Str(m_value.ptr()));
-            constexpr const char *message_unavailable_exc
-                = "<MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>";
-            if (!value_str) {
-                message_error_string = detail::error_string();
-                result = message_unavailable_exc;
-            } else {
-                // Not using `value_str.cast<std::string>()`, to not potentially throw a secondary
-                // error_already_set that will then result in process termination (#4288).
-                auto value_bytes = reinterpret_steal<object>(
-                    PyUnicode_AsEncodedString(value_str.ptr(), "utf-8", "backslashreplace"));
-                if (!value_bytes) {
-                    message_error_string = detail::error_string();
-                    result = message_unavailable_exc;
-                } else {
-                    char *buffer = nullptr;
-                    Py_ssize_t length = 0;
-                    if (PyBytes_AsStringAndSize(value_bytes.ptr(), &buffer, &length) == -1) {
-                        message_error_string = detail::error_string();
-                        result = message_unavailable_exc;
-                    } else {
-                        result = std::string(buffer, static_cast<std::size_t>(length));
-                    }
-                }
-            }
-#if PY_VERSION_HEX >= 0x030B0000
-            auto notes
-                = reinterpret_steal<object>(PyObject_GetAttrString(m_value.ptr(), "__notes__"));
-            if (!notes) {
-                PyErr_Clear(); // No notes is good news.
-            } else {
-                auto len_notes = PyList_Size(notes.ptr());
-                if (len_notes < 0) {
-                    result += "\nFAILURE obtaining len(__notes__): " + detail::error_string();
-                } else {
-                    result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
-                    for (ssize_t i = 0; i < len_notes; i++) {
-                        PyObject *note = PyList_GET_ITEM(notes.ptr(), i);
-                        auto note_bytes = reinterpret_steal<object>(
-                            PyUnicode_AsEncodedString(note, "utf-8", "backslashreplace"));
-                        if (!note_bytes) {
-                            result += "\nFAILURE obtaining __notes__[" + std::to_string(i)
-                                      + "]: " + detail::error_string();
-                        } else {
-                            char *buffer = nullptr;
-                            Py_ssize_t length = 0;
-                            if (PyBytes_AsStringAndSize(note_bytes.ptr(), &buffer, &length)
-                                == -1) {
-                                result += "\nFAILURE formatting __notes__[" + std::to_string(i)
-                                          + "]: " + detail::error_string();
-                            } else {
-                                result += '\n';
-                                result += std::string(buffer, static_cast<std::size_t>(length));
-                            }
-                        }
-                    }
-                }
-            }
-#endif
-        } else {
-            result = "<MESSAGE UNAVAILABLE>";
-        }
-        if (result.empty()) {
-            result = "<EMPTY MESSAGE>";
-        }
-
-        bool have_trace = false;
-        if (m_trace) {
-#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-            auto *tb = reinterpret_cast<PyTracebackObject *>(m_trace.ptr());
-
-            // Get the deepest trace possible.
-            while (tb->tb_next) {
-                tb = tb->tb_next;
-            }
-
-            PyFrameObject *frame = tb->tb_frame;
-            Py_XINCREF(frame);
-            result += "\n\nAt:\n";
-            while (frame) {
-#    if PY_VERSION_HEX >= 0x030900B1
-                PyCodeObject *f_code = PyFrame_GetCode(frame);
-#    else
-                PyCodeObject *f_code = frame->f_code;
-                Py_INCREF(f_code);
-#    endif
-                int lineno = PyFrame_GetLineNumber(frame);
-                result += "  ";
-                result += handle(f_code->co_filename).cast<std::string>();
-                result += '(';
-                result += std::to_string(lineno);
-                result += "): ";
-                result += handle(f_code->co_name).cast<std::string>();
-                result += '\n';
-                Py_DECREF(f_code);
-#    if PY_VERSION_HEX >= 0x030900B1
-                auto *b_frame = PyFrame_GetBack(frame);
-#    else
-                auto *b_frame = frame->f_back;
-                Py_XINCREF(b_frame);
-#    endif
-                Py_DECREF(frame);
-                frame = b_frame;
-            }
-
-            have_trace = true;
-#endif //! defined(PYPY_VERSION)
-        }
-
-        if (!message_error_string.empty()) {
-            if (!have_trace) {
-                result += '\n';
-            }
-            result += "\nMESSAGE UNAVAILABLE DUE TO EXCEPTION: " + message_error_string;
-        }
-
-        return result;
+    std::string format_value_and_trace() const
+    {
+        return non_limited_api::error_fetch_and_normalize_format_value_and_trace(*this);
     }
 
     std::string const &error_string() const {
@@ -942,15 +810,9 @@ inline ssize_t hash(handle obj) {
 /// @} python_builtins
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-inline handle get_function(handle value) {
-    if (value) {
-        if (PyInstanceMethod_Check(value.ptr())) {
-            value = PyInstanceMethod_GET_FUNCTION(value.ptr());
-        } else if (PyMethod_Check(value.ptr())) {
-            value = PyMethod_GET_FUNCTION(value.ptr());
-        }
-    }
-    return value;
+inline handle get_function(handle value)
+{
+    return non_limited_api::get_function(value);
 }
 
 // Reimplementation of python's dict helper functions to ensure that exceptions
@@ -1258,7 +1120,7 @@ protected:
     using reference = const handle; // PR #3263
     using pointer = arrow_proxy<const handle>;
 
-    sequence_fast_readonly(handle obj, ssize_t n) : ptr(PySequence_Fast_ITEMS(obj.ptr()) + n) {}
+    sequence_fast_readonly(handle obj, ssize_t n) : ptr(non_limited_api::PySequence_Fast_ITEMS_(obj.ptr()) + n) {}
     sequence_fast_readonly() = default;
 
     // NOLINTNEXTLINE(readability-const-return-type) // PR #3263
@@ -1356,7 +1218,9 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #    define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
-inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
+inline bool PyStaticMethod_Check(PyObject *o) {
+    return non_limited_api::PyStaticMethod_Check(o);
+}
 
 class kwargs_proxy : public handle {
 public:
@@ -1784,8 +1648,8 @@ public:
     size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
 
     explicit operator std::string() const {
-        char *buffer = PyByteArray_AS_STRING(m_ptr);
-        ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        char *buffer = non_limited_api::PyByteArray_AS_STRING_(m_ptr);
+        ssize_t size = non_limited_api::PyByteArray_GET_SIZE_(m_ptr);
         return std::string(buffer, static_cast<size_t>(size));
     }
 };
@@ -2105,7 +1969,7 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::tuple_iterator begin() const { return {*this, 0}; }
-    detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
+    detail::tuple_iterator end() const { return {*this, non_limited_api::PyTuple_GET_SIZE_(m_ptr)}; }
 };
 
 // We need to put this into a separate function because the Intel compiler
@@ -2194,7 +2058,7 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::list_iterator begin() const { return {*this, 0}; }
-    detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
+    detail::list_iterator end() const { return {*this, non_limited_api::PyList_GET_SIZE_(m_ptr)}; }
     template <typename T>
     void append(T &&val) /* py-non-const */ {
         if (PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {
@@ -2288,24 +2152,15 @@ public:
 
 class staticmethod : public object {
 public:
-    PYBIND11_OBJECT_CVT(staticmethod, object, detail::PyStaticMethod_Check, PyStaticMethod_New)
+    PYBIND11_OBJECT_CVT(staticmethod, object, detail::PyStaticMethod_Check, non_limited_api::PyStaticMethod_New)
 };
 
 class buffer : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(buffer, object, PyObject_CheckBuffer)
+    PYBIND11_OBJECT_DEFAULT(buffer, object, non_limited_api::PyObject_CheckBuffer)
 
     buffer_info request(bool writable = false) const {
-        int flags = PyBUF_STRIDES | PyBUF_FORMAT;
-        if (writable) {
-            flags |= PyBUF_WRITABLE;
-        }
-        auto *view = new Py_buffer();
-        if (PyObject_GetBuffer(m_ptr, view, flags) != 0) {
-            delete view;
-            throw error_already_set();
-        }
-        return buffer_info(view);
+        return non_limited_api::buffer_request(*this, writable);
     }
 };
 
@@ -2323,15 +2178,7 @@ public:
         use ``memoryview(const object& obj)`` instead of this constructor.
      \endrst */
     explicit memoryview(const buffer_info &info) {
-        if (!info.view()) {
-            pybind11_fail("Prohibited to create memoryview without Py_buffer");
-        }
-        // Note: PyMemoryView_FromBuffer never increments obj reference.
-        m_ptr = (info.view()->obj) ? PyMemoryView_FromObject(info.view()->obj)
-                                   : PyMemoryView_FromBuffer(info.view());
-        if (!m_ptr) {
-            pybind11_fail("Unable to create memoryview from buffer descriptor");
-        }
+        non_limited_api::memoryview_ctor(*this, info);
     }
 
     /** \rst
@@ -2363,7 +2210,10 @@ public:
                                   const char *format,
                                   detail::any_container<ssize_t> shape,
                                   detail::any_container<ssize_t> strides,
-                                  bool readonly = false);
+                                  bool readonly = false)
+    {
+        return non_limited_api::memoryview_from_buffer(ptr, itemsize, format, std::move(shape), std::move(strides), readonly);
+    }
 
     static memoryview from_buffer(const void *ptr,
                                   ssize_t itemsize,
@@ -2408,12 +2258,7 @@ public:
            https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
     static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
-        PyObject *ptr = PyMemoryView_FromMemory(
-            reinterpret_cast<char *>(mem), size, (readonly) ? PyBUF_READ : PyBUF_WRITE);
-        if (!ptr) {
-            pybind11_fail("Could not allocate memoryview object!");
-        }
-        return memoryview(object(ptr, stolen_t{}));
+        return non_limited_api::memoryview_from_memory(mem, size, readonly);
     }
 
     static memoryview from_memory(const void *mem, ssize_t size) {
@@ -2427,40 +2272,6 @@ public:
 #endif
 };
 
-/// @cond DUPLICATE
-inline memoryview memoryview::from_buffer(void *ptr,
-                                          ssize_t itemsize,
-                                          const char *format,
-                                          detail::any_container<ssize_t> shape,
-                                          detail::any_container<ssize_t> strides,
-                                          bool readonly) {
-    size_t ndim = shape->size();
-    if (ndim != strides->size()) {
-        pybind11_fail("memoryview: shape length doesn't match strides length");
-    }
-    ssize_t size = ndim != 0u ? 1 : 0;
-    for (size_t i = 0; i < ndim; ++i) {
-        size *= (*shape)[i];
-    }
-    Py_buffer view;
-    view.buf = ptr;
-    view.obj = nullptr;
-    view.len = size * itemsize;
-    view.readonly = static_cast<int>(readonly);
-    view.itemsize = itemsize;
-    view.format = const_cast<char *>(format);
-    view.ndim = static_cast<int>(ndim);
-    view.shape = shape->data();
-    view.strides = strides->data();
-    view.suboffsets = nullptr;
-    view.internal = nullptr;
-    PyObject *obj = PyMemoryView_FromBuffer(&view);
-    if (!obj) {
-        throw error_already_set();
-    }
-    return memoryview(object(obj, stolen_t{}));
-}
-/// @endcond
 /// @} pytypes
 
 /// \addtogroup python_builtins
@@ -2478,7 +2289,7 @@ inline size_t len(handle h) {
 /// Get the length hint of a Python object.
 /// Returns 0 when this cannot be determined.
 inline size_t len_hint(handle h) {
-    ssize_t result = PyObject_LengthHint(h.ptr(), 0);
+    ssize_t result = non_limited_api::PyObject_LengthHint(h.ptr(), 0);
     if (result < 0) {
         // Sometimes a length can't be determined at all (eg generators)
         // In which case simply return 0
