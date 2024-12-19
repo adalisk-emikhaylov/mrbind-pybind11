@@ -1,3 +1,5 @@
+#define PYBIND11_NONLIMITEDAPI_API_IMPL PYBIND11_NONLIMITEDAPI_EXPORT
+
 #include "pybind11/pybind11.h"
 
 using namespace pybind11;

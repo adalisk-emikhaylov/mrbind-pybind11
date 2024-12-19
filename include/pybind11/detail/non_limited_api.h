@@ -62,6 +62,9 @@ using namespace detail;
 #ifndef PYBIND11_NONLIMITEDAPI_API
 #define PYBIND11_NONLIMITEDAPI_API PYBIND11_NONLIMITEDAPI_IMPORT
 #endif
+#ifndef PYBIND11_NONLIMITEDAPI_API_IMPL
+#define PYBIND11_NONLIMITEDAPI_API_IMPL
+#endif
 
 PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix);
 
@@ -69,7 +72,7 @@ PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_spe
 #define PYBIND11_NONLIMITEDAPI_FUNC(ret_, func_, params_, param_uses_) \
     PYBIND11_NONLIMITEDAPI_API ret_ func_ params_; \
     PYBIND11_NONLIMITEDAPI_SILENCE_EXTERN_C_WARNING( \
-        extern "C" ret_ pybind11NLA_##func_ params_; \
+        extern "C" PYBIND11_NONLIMITEDAPI_API_IMPL ret_ pybind11NLA_##func_ params_; \
     )
 #endif
 

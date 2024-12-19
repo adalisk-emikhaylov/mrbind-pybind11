@@ -4,8 +4,10 @@
 
 #ifdef _WIN32
 #define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + L'/' + std::wstring(file.begin(), file.end()) + ".dll").c_str())
+#define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR std::to_string(GetLastError()).c_str()
 #else
-#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + '/' + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
+#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + "/lib" + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
+#define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR dlerror()
 #endif
 
 static void *&SharedLibraryHandle()
@@ -71,7 +73,7 @@ void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_spe
     handle = PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file);
     if (!handle)
     {
-        std::fprintf(stderr, "pybind11 non-limited-api: Failed to load library: %s\n", file.c_str());
+        std::fprintf(stderr, "pybind11 non-limited-api: Failed to load library `%s` with error `%s`.\n", file.c_str(), PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR);
         std::exit(1);
     }
 }

@@ -26,7 +26,8 @@ else()
   add_library(${PYBIND11_NONLIMITEDAPI_LIBNAME} SHARED non_limited_api.cpp)
   target_include_directories(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC ../../include)
   target_include_directories(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC ${Python_INCLUDE_DIRS})
-  target_link_libraries(${PYBIND11_NONLIMITEDAPI_LIBNAME} PRIVATE pybind11nonlimitedapi_stubs)
+  target_link_libraries(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC pybind11nonlimitedapi_stubs)
+  target_link_libraries(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC Python::Python)
 
   install(TARGETS ${PYBIND11_NONLIMITEDAPI_LIBNAME}
     ARCHIVE DESTINATION lib
