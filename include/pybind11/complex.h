@@ -54,7 +54,7 @@ public:
         if (!convert && !PyComplex_Check(src.ptr())) {
             return false;
         }
-        Py_complex result = PyComplex_AsCComplex(src.ptr());
+        Py_complex result = non_limited_api::PyComplex_AsCComplex(src.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();
             return false;

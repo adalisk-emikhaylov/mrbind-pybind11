@@ -13,6 +13,8 @@
 typedef struct bufferinfo Py_buffer;
 typedef struct _heaptypeobject PyHeapTypeObject;
 typedef struct _typeobject PyTypeObject;
+typedef struct { double real; double imag; } Py_complex;
+typedef struct PyConfig PyConfig;
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -40,6 +42,9 @@ PYBIND11_NAMESPACE_END(detail)
 // --- ] End forward declarations.
 
 PYBIND11_NAMESPACE_BEGIN(non_limited_api)
+
+// This is separate from the rest of the forward declarations, because the target struct is unnamed and I can't find a good way to forward-declare it.
+typedef struct PyStatus_ PyStatus_;
 
 using namespace detail;
 
@@ -82,28 +87,19 @@ PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_spe
 PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_Release, (Py_buffer *buf), (buf))
 PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_delete, (Py_buffer *buf), (buf))
 PYBIND11_NONLIMITEDAPI_FUNC(int, PyGILState_Check, (), ())
-
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject **, PySequence_Fast_ITEMS_, (PyObject *obj), (obj))
-
 PYBIND11_NONLIMITEDAPI_FUNC(char *, PyByteArray_AS_STRING_, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyByteArray_GET_SIZE_, (PyObject *obj), (obj))
-
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyTuple_GET_SIZE_, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyTuple_GET_ITEM_, (PyObject *obj, ssize_t i), (obj, i))
 PYBIND11_NONLIMITEDAPI_FUNC(void, PyTuple_SET_ITEM_, (PyObject *obj, ssize_t i, PyObject *value), (obj, i, value))
-
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyList_GET_SIZE_, (PyObject *obj), (obj))
-
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyList_SET_ITEM_, (PyObject *obj, ssize_t i, PyObject *value), (obj, i, value))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyStaticMethod_New, (PyObject *obj), (obj))
-
 PYBIND11_NONLIMITEDAPI_FUNC(int, PyObject_CheckBuffer, (PyObject *obj), (obj))
-
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyObject_LengthHint, (PyObject *obj, ssize_t i), (obj, i))
-
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject **, _PyObject_GetDictPtr, (PyObject *obj), (obj))
-
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyCFunction_GET_SELF_, (PyObject *obj), (obj))
-
 
 PYBIND11_NONLIMITEDAPI_FUNC(const char *, obj_class_name, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(std::string, error_fetch_and_normalize_format_value_and_trace, (const error_fetch_and_normalize &self), (self))
@@ -134,6 +130,31 @@ PYBIND11_NONLIMITEDAPI_FUNC(void, generic_type_mark_parents_nonsimple, (generic_
 PYBIND11_NONLIMITEDAPI_FUNC(void, generic_type_install_buffer_funcs, (generic_type &self, buffer_info *(*get_buffer)(PyObject *, void *), void *get_buffer_data), (self, get_buffer, get_buffer_data))
 PYBIND11_NONLIMITEDAPI_FUNC(void, enum_base_init, (enum_base &self, bool is_arithmetic, bool is_convertible), (self, is_arithmetic, is_convertible))
 PYBIND11_NONLIMITEDAPI_FUNC(function, get_type_override, (const void *this_ptr, const type_info *this_type, const char *name), (this_ptr, this_type, name))
+PYBIND11_NONLIMITEDAPI_FUNC(Py_complex, PyComplex_AsCComplex, (PyObject *obj), (obj))
+PYBIND11_NONLIMITEDAPI_FUNC(const char *, PyUnicode_AsUTF8AndSize, (PyObject *unicode, ssize_t *size), (unicode, size))
+PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyRun_String_, (const char *str, int s, PyObject *g, PyObject *l), (str, s, g, l))
+PYBIND11_NONLIMITEDAPI_FUNC(FILE *, _Py_fopen_obj, (PyObject *path, const char *mode), (path, mode))
+PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyRun_FileEx_, (FILE *fp, const char *p, int s, PyObject *g, PyObject *l, int c), (fp, p, s, g, l, c))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyMem_RawFree, (void *ptr), (ptr))
+PYBIND11_NONLIMITEDAPI_FUNC(void, initialize_interpreter, (PyConfig *config, int argc, const char *const *argv, bool add_program_dir_to_path), (config, argc, argv, add_program_dir_to_path))
+PYBIND11_NONLIMITEDAPI_FUNC(void, initialize_interpreter2, (bool init_signal_handlers, int argc, const char *const *argv, bool add_program_dir_to_path), (init_signal_handlers, argc, argv, add_program_dir_to_path))
+PYBIND11_NONLIMITEDAPI_FUNC(PyConfig *, PyConfig_new, (), ())
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_delete, (PyConfig *c), (c))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_InitPythonConfig, (PyConfig *c), (c))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_Clear, (PyConfig *c), (c))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_set_site_import, (PyConfig *c, int value), (c, value))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_set_parse_argv, (PyConfig *c, int value), (c, value))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_set_install_signal_handlers, (PyConfig *c, int value), (c, value))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyConfig_set_isolated, (PyConfig *c, int value), (c, value))
+PYBIND11_NONLIMITEDAPI_FUNC(wchar_t **, PyConfig_home_ptr, (PyConfig *c), (c))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyStatus_delete, (PyStatus_ *ptr), (ptr))
+PYBIND11_NONLIMITEDAPI_FUNC(PyStatus_ *, PyConfig_SetString, (PyConfig *config, wchar_t **config_str, const wchar_t *str), (config, config_str, str))
+PYBIND11_NONLIMITEDAPI_FUNC(PyStatus_ *, PyConfig_SetBytesArgv, (PyConfig *config, ssize_t argc, char *const *argv), (config, argc, argv))
+PYBIND11_NONLIMITEDAPI_FUNC(int, PyStatus_Exception, (const PyStatus_ *err), (err))
+PYBIND11_NONLIMITEDAPI_FUNC(const char *, PyStatus_get_err_msg, (const PyStatus_ *s), (s))
+PYBIND11_NONLIMITEDAPI_FUNC(PyStatus_ *, Py_InitializeFromConfig, (const PyConfig *config), (config))
+PYBIND11_NONLIMITEDAPI_FUNC(bool, PyObjectIsInstanceWithOneOfTpNames, (PyObject *obj, std::initializer_list<const char *> tp_names), (obj, tp_names))
+PYBIND11_NONLIMITEDAPI_FUNC(int, PyGen_Check_, (PyObject *obj), (obj))
 
 PYBIND11_NAMESPACE_END(non_limited_api)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

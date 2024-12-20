@@ -1,27 +1,53 @@
 #define PYBIND11_NONLIMITEDAPI_API_IMPL PYBIND11_NONLIMITEDAPI_EXPORT
 
 #include "pybind11/pybind11.h"
+#include "pybind11/embed.h"
 
 using namespace pybind11;
 using namespace pybind11::detail;
 
 // -------- SIMPLE WRAPPERS:
 
-void        pybind11::non_limited_api::pybind11NLA_PyBuffer_Release      (Py_buffer *buf)                            {::PyBuffer_Release(buf);}
-void        pybind11::non_limited_api::pybind11NLA_PyBuffer_delete       (Py_buffer *buf)                            {delete buf;}
-int         pybind11::non_limited_api::pybind11NLA_PyGILState_Check      ()                                          {return ::PyGILState_Check();}
-PyObject ** pybind11::non_limited_api::pybind11NLA_PySequence_Fast_ITEMS_(PyObject *obj)                             {return PySequence_Fast_ITEMS(obj);}
-char *      pybind11::non_limited_api::pybind11NLA_PyByteArray_AS_STRING_(PyObject *obj)                             {return PyByteArray_AS_STRING(obj);}
-ssize_t     pybind11::non_limited_api::pybind11NLA_PyByteArray_GET_SIZE_ (PyObject *obj)                             {return PyByteArray_GET_SIZE(obj);}
-ssize_t     pybind11::non_limited_api::pybind11NLA_PyTuple_GET_SIZE_     (PyObject *obj)                             {return PyTuple_GET_SIZE(obj);}
-PyObject *  pybind11::non_limited_api::pybind11NLA_PyTuple_GET_ITEM_     (PyObject *obj, ssize_t i)                  {return PyTuple_GET_ITEM(obj, i);}
-void        pybind11::non_limited_api::pybind11NLA_PyTuple_SET_ITEM_     (PyObject *obj, ssize_t i, PyObject *value) {PyTuple_SET_ITEM(obj, i, value);}
-ssize_t     pybind11::non_limited_api::pybind11NLA_PyList_GET_SIZE_      (PyObject *obj)                             {return PyList_GET_SIZE(obj);}
-PyObject *  pybind11::non_limited_api::pybind11NLA_PyStaticMethod_New    (PyObject *obj)                             {return ::PyStaticMethod_New(obj);}
-int         pybind11::non_limited_api::pybind11NLA_PyObject_CheckBuffer  (PyObject *obj)                             {return ::PyObject_CheckBuffer(obj);}
-ssize_t     pybind11::non_limited_api::pybind11NLA_PyObject_LengthHint   (PyObject *obj, ssize_t i)                  {return ::PyObject_LengthHint(obj, i);}
-PyObject ** pybind11::non_limited_api::pybind11NLA__PyObject_GetDictPtr  (PyObject *obj)                             {return ::_PyObject_GetDictPtr(obj);}
-PyObject *  pybind11::non_limited_api::pybind11NLA_PyCFunction_GET_SELF_ (PyObject *obj)                             {return PyCFunction_GET_SELF(obj);}
+using pybind11::non_limited_api::PyStatus_;
+
+void        pybind11::non_limited_api::pybind11NLA_PyBuffer_Release         (Py_buffer *buf)                                   {::PyBuffer_Release(buf);}
+void        pybind11::non_limited_api::pybind11NLA_PyBuffer_delete          (Py_buffer *buf)                                   {delete buf;}
+int         pybind11::non_limited_api::pybind11NLA_PyGILState_Check         ()                                                 {return ::PyGILState_Check();}
+PyObject ** pybind11::non_limited_api::pybind11NLA_PySequence_Fast_ITEMS_   (PyObject *obj)                                    {return PySequence_Fast_ITEMS(obj);}
+char *      pybind11::non_limited_api::pybind11NLA_PyByteArray_AS_STRING_   (PyObject *obj)                                    {return PyByteArray_AS_STRING(obj);}
+ssize_t     pybind11::non_limited_api::pybind11NLA_PyByteArray_GET_SIZE_    (PyObject *obj)                                    {return PyByteArray_GET_SIZE(obj);}
+ssize_t     pybind11::non_limited_api::pybind11NLA_PyTuple_GET_SIZE_        (PyObject *obj)                                    {return PyTuple_GET_SIZE(obj);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyTuple_GET_ITEM_        (PyObject *obj, ssize_t i)                         {return PyTuple_GET_ITEM(obj, i);}
+void        pybind11::non_limited_api::pybind11NLA_PyTuple_SET_ITEM_        (PyObject *obj, ssize_t i, PyObject *value)        {PyTuple_SET_ITEM(obj, i, value);}
+ssize_t     pybind11::non_limited_api::pybind11NLA_PyList_GET_SIZE_         (PyObject *obj)                                    {return PyList_GET_SIZE(obj);}
+void        pybind11::non_limited_api::pybind11NLA_PyList_SET_ITEM_         (PyObject *obj, ssize_t i, PyObject *value)        {PyList_SET_ITEM(obj, i, value);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyStaticMethod_New       (PyObject *obj)                                    {return ::PyStaticMethod_New(obj);}
+int         pybind11::non_limited_api::pybind11NLA_PyObject_CheckBuffer     (PyObject *obj)                                    {return ::PyObject_CheckBuffer(obj);}
+ssize_t     pybind11::non_limited_api::pybind11NLA_PyObject_LengthHint      (PyObject *obj, ssize_t i)                         {return ::PyObject_LengthHint(obj, i);}
+PyObject ** pybind11::non_limited_api::pybind11NLA__PyObject_GetDictPtr     (PyObject *obj)                                    {return ::_PyObject_GetDictPtr(obj);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyCFunction_GET_SELF_    (PyObject *obj)                                    {return PyCFunction_GET_SELF(obj);}
+Py_complex  pybind11::non_limited_api::pybind11NLA_PyComplex_AsCComplex     (PyObject *obj)                                    {return ::PyComplex_AsCComplex(obj);}
+const char *pybind11::non_limited_api::pybind11NLA_PyUnicode_AsUTF8AndSize  (PyObject *unicode, ssize_t *size)                 {return ::PyUnicode_AsUTF8AndSize(unicode, size);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyRun_String_            (const char *str, int s, PyObject *g, PyObject *l) {return PyRun_String(str, s, g, l);}
+FILE *      pybind11::non_limited_api::pybind11NLA__Py_fopen_obj            (PyObject *path, const char *mode)                 {return ::_Py_fopen_obj(path, mode);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyRun_FileEx_            (FILE *fp, const char *p, int s, PyObject *g, PyObject *l, int c) {return PyRun_FileEx(fp, p, s, g, l, c);}
+void        pybind11::non_limited_api::pybind11NLA_PyMem_RawFree            (void *ptr)                                        {return ::PyMem_RawFree(ptr);}
+PyConfig *  pybind11::non_limited_api::pybind11NLA_PyConfig_new             ()                                                 {return new PyConfig;}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_delete          (PyConfig *c)                                      {delete c;}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_InitPythonConfig(PyConfig *c)                                      {::PyConfig_InitPythonConfig(c);}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_Clear           (PyConfig *c)                                      {::PyConfig_Clear(c);}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_set_site_import (PyConfig *c, int value)                           {c->site_import = value;}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_set_parse_argv  (PyConfig *c, int value)                           {c->parse_argv = value;}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_set_install_signal_handlers(PyConfig *c, int value)                {c->install_signal_handlers = value;}
+void        pybind11::non_limited_api::pybind11NLA_PyConfig_set_isolated    (PyConfig *c, int value)                           {c->isolated = value;}
+wchar_t **  pybind11::non_limited_api::pybind11NLA_PyConfig_home_ptr        (PyConfig *c)                                      {return &c->home;}
+void        pybind11::non_limited_api::pybind11NLA_PyStatus_delete          (PyStatus_ *ptr)                                   {delete (PyStatus *)ptr;}
+PyStatus_ * pybind11::non_limited_api::pybind11NLA_PyConfig_SetString       (PyConfig *config, wchar_t **config_str, const wchar_t *str) {return (PyStatus_ *)new PyStatus(::PyConfig_SetString(config, config_str, str));}
+PyStatus_ * pybind11::non_limited_api::pybind11NLA_PyConfig_SetBytesArgv    (PyConfig *config, ssize_t argc, char *const *argv){return (PyStatus_ *)new PyStatus(::PyConfig_SetBytesArgv(config, argc, argv));}
+int         pybind11::non_limited_api::pybind11NLA_PyStatus_Exception       (const PyStatus_ *err)                             {return ::PyStatus_Exception(*(PyStatus *)err);}
+const char *pybind11::non_limited_api::pybind11NLA_PyStatus_get_err_msg     (const PyStatus_ *s)                               {return ((PyStatus *)s)->err_msg;}
+PyStatus_ * pybind11::non_limited_api::pybind11NLA_Py_InitializeFromConfig  (const PyConfig *config)                           {return (PyStatus_ *)new PyStatus(::Py_InitializeFromConfig(config));}
+int         pybind11::non_limited_api::pybind11NLA_PyGen_Check_             (PyObject *obj)                                    {return PyGen_Check(obj);}
 
 // -------- STATIC FUNCTIONS:
 
@@ -1740,4 +1766,69 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
 #endif
 
     return override;
+}
+
+void pybind11::non_limited_api::pybind11NLA_initialize_interpreter(
+    PyConfig *config,
+    int argc,
+    const char *const *argv,
+    bool add_program_dir_to_path
+)
+{
+    detail::precheck_interpreter();
+    PyStatus status = ::PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
+    if (::PyStatus_Exception(status) != 0) {
+        // A failure here indicates a character-encoding failure or the python
+        // interpreter out of memory. Give up.
+        ::PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to prepare CPython");
+    }
+    status = ::Py_InitializeFromConfig(config);
+    if (::PyStatus_Exception(status) != 0) {
+        ::PyConfig_Clear(config);
+        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
+                                                               : "Failed to init CPython");
+    }
+    if (add_program_dir_to_path) {
+        PyRun_SimpleString("import sys, os.path; "
+                           "sys.path.insert(0, "
+                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
+                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
+    }
+    ::PyConfig_Clear(config);
+}
+
+void pybind11::non_limited_api::pybind11NLA_initialize_interpreter2(
+    bool init_signal_handlers,
+    int argc,
+    const char *const *argv,
+    bool add_program_dir_to_path)
+{
+#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
+    detail::initialize_interpreter_pre_pyconfig(
+        init_signal_handlers, argc, argv, add_program_dir_to_path);
+#else
+    PyConfig config;
+    ::PyConfig_InitPythonConfig(&config);
+    // See PR #4473 for background
+    config.parse_argv = 0;
+
+    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
+    initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
+#endif
+}
+
+bool pybind11::non_limited_api::pybind11NLA_PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
+                                               std::initializer_list<const char *> tp_names) {
+    if (PyType_Check(obj)) {
+        return false;
+    }
+    const char *obj_tp_name = Py_TYPE(obj)->tp_name;
+    for (const auto *tp_name : tp_names) {
+        if (std::strcmp(obj_tp_name, tp_name) == 0) {
+            return true;
+        }
+    }
+    return false;
 }

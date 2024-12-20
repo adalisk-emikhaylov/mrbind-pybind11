@@ -71,7 +71,7 @@ object eval(const str &expr, object global = globals(), object local = object())
             pybind11_fail("invalid evaluation mode");
     }
 
-    PyObject *result = PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr());
+    PyObject *result = non_limited_api::PyRun_String_(buffer.c_str(), start, global.ptr(), local.ptr());
     if (!result) {
         throw error_already_set();
     }
@@ -133,7 +133,7 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 
     int closeFile = 1;
     std::string fname_str = (std::string) fname;
-    FILE *f = _Py_fopen_obj(fname.ptr(), "r");
+    FILE *f = non_limited_api::_Py_fopen_obj(fname.ptr(), "r");
     if (!f) {
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
@@ -144,7 +144,7 @@ object eval_file(str fname, object global = globals(), object local = object()) 
     }
 
     PyObject *result
-        = PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(), local.ptr(), closeFile);
+        = non_limited_api::PyRun_FileEx_(f, fname_str.c_str(), start, global.ptr(), local.ptr(), closeFile);
 
     if (!result) {
         throw error_already_set();

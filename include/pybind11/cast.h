@@ -402,7 +402,7 @@ struct string_caster {
         if (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
-                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+                = reinterpret_cast<const CharT *>(non_limited_api::PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
             if (!buffer) {
                 PyErr_Clear();
                 return false;

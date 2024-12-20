@@ -114,7 +114,7 @@ public:
         // Force garbage collection to ensure any pending destructors are invoked:
 #if defined(PYPY_VERSION)
         PyObject *globals = PyEval_GetGlobals();
-        PyObject *result = PyRun_String("import gc\n"
+        PyObject *result = non_limited_api::PyRun_String_("import gc\n"
                                         "for i in range(2):\n"
                                         "    gc.collect()\n",
                                         Py_file_input,

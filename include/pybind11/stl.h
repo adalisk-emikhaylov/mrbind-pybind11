@@ -72,24 +72,16 @@ to prevent accidents and improve readability:
 */
 
 inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
-                                               std::initializer_list<const char *> tp_names) {
-    if (PyType_Check(obj)) {
-        return false;
-    }
-    const char *obj_tp_name = Py_TYPE(obj)->tp_name;
-    for (const auto *tp_name : tp_names) {
-        if (std::strcmp(obj_tp_name, tp_name) == 0) {
-            return true;
-        }
-    }
-    return false;
+                                               std::initializer_list<const char *> tp_names)
+{
+    return pybind11::non_limited_api::PyObjectIsInstanceWithOneOfTpNames(obj, tp_names);
 }
 
 inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
     if (PySequence_Check(obj) != 0) {
         return !PyUnicode_Check(obj) && !PyBytes_Check(obj);
     }
-    return (PyGen_Check(obj) != 0) || (PyAnySet_Check(obj) != 0)
+    return (non_limited_api::PyGen_Check_(obj) != 0) || (PyAnySet_Check(obj) != 0)
            || PyObjectIsInstanceWithOneOfTpNames(
                obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
@@ -335,7 +327,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            pybind11::non_limited_api::PyList_SET_ITEM_(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -443,7 +435,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            non_limited_api::PyList_SET_ITEM_(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }

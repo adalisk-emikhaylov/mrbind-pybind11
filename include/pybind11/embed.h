@@ -77,7 +77,7 @@ struct embedded_module {
 struct wide_char_arg_deleter {
     void operator()(wchar_t *ptr) const {
         // API docs: https://docs.python.org/3/c-api/sys.html#c.Py_DecodeLocale
-        PyMem_RawFree(ptr);
+        non_limited_api::PyMem_RawFree(ptr);
     }
 };
 
@@ -132,28 +132,7 @@ inline void initialize_interpreter(PyConfig *config,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
                                    bool add_program_dir_to_path = true) {
-    detail::precheck_interpreter();
-    PyStatus status = PyConfig_SetBytesArgv(config, argc, const_cast<char *const *>(argv));
-    if (PyStatus_Exception(status) != 0) {
-        // A failure here indicates a character-encoding failure or the python
-        // interpreter out of memory. Give up.
-        PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
-                                                               : "Failed to prepare CPython");
-    }
-    status = Py_InitializeFromConfig(config);
-    if (PyStatus_Exception(status) != 0) {
-        PyConfig_Clear(config);
-        throw std::runtime_error(PyStatus_IsError(status) != 0 ? status.err_msg
-                                                               : "Failed to init CPython");
-    }
-    if (add_program_dir_to_path) {
-        PyRun_SimpleString("import sys, os.path; "
-                           "sys.path.insert(0, "
-                           "os.path.abspath(os.path.dirname(sys.argv[0])) "
-                           "if sys.argv and os.path.exists(sys.argv[0]) else '')");
-    }
-    PyConfig_Clear(config);
+    non_limited_api::initialize_interpreter(config, argc, argv, add_program_dir_to_path);
 }
 #endif
 
@@ -179,19 +158,9 @@ inline void initialize_interpreter(PyConfig *config,
 inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
                                    const char *const *argv = nullptr,
-                                   bool add_program_dir_to_path = true) {
-#if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
-    detail::initialize_interpreter_pre_pyconfig(
-        init_signal_handlers, argc, argv, add_program_dir_to_path);
-#else
-    PyConfig config;
-    PyConfig_InitPythonConfig(&config);
-    // See PR #4473 for background
-    config.parse_argv = 0;
-
-    config.install_signal_handlers = init_signal_handlers ? 1 : 0;
-    initialize_interpreter(&config, argc, argv, add_program_dir_to_path);
-#endif
+                                   bool add_program_dir_to_path = true)
+{
+    non_limited_api::initialize_interpreter2(init_signal_handlers, argc, argv, add_program_dir_to_path);
 }
 
 /** \rst
