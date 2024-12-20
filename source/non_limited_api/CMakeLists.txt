@@ -21,7 +21,7 @@ set(PYBIND11_NONLIMITEDAPI_SUFFIX "" CACHE STRING "A custom suffix to append to 
 if (PYBIND11_NONLIMITEDAPI_PYTHON_HEX_VERSION STREQUAL "")
   message("Not building pybind11nonlimitedapi because no Python version is specified.")
 else()
-  set(PYBIND11_NONLIMITEDAPI_LIBNAME "pybind11nonlimitedapi${PYBIND11_NONLIMITEDAPI_SUFFIX}")
+  set(PYBIND11_NONLIMITEDAPI_LIBNAME "pybind11nonlimitedapi${PYBIND11_NONLIMITEDAPI_SUFFIX}_${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
   project(${PYBIND11_NONLIMITEDAPI_LIBNAME})
   add_library(${PYBIND11_NONLIMITEDAPI_LIBNAME} SHARED non_limited_api.cpp)
   target_include_directories(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC ../../include)
