@@ -9,9 +9,10 @@ using namespace pybind11::detail;
 // -------- SIMPLE WRAPPERS:
 
 using pybind11::non_limited_api::PyStatus_;
+using pybind11::non_limited_api::Py_buffer_;
 
-void        pybind11::non_limited_api::pybind11NLA_PyBuffer_Release         (Py_buffer *buf)                                   {::PyBuffer_Release(buf);}
-void        pybind11::non_limited_api::pybind11NLA_PyBuffer_delete          (Py_buffer *buf)                                   {delete buf;}
+void        pybind11::non_limited_api::pybind11NLA_PyBuffer_Release         (Py_buffer_ *buf)                                  {::PyBuffer_Release((Py_buffer *)buf);}
+void        pybind11::non_limited_api::pybind11NLA_PyBuffer_delete          (Py_buffer_ *buf)                                  {delete (Py_buffer *)buf;}
 int         pybind11::non_limited_api::pybind11NLA_PyGILState_Check         ()                                                 {return ::PyGILState_Check();}
 PyObject ** pybind11::non_limited_api::pybind11NLA_PySequence_Fast_ITEMS_   (PyObject *obj)                                    {return PySequence_Fast_ITEMS(obj);}
 char *      pybind11::non_limited_api::pybind11NLA_PyByteArray_AS_STRING_   (PyObject *obj)                                    {return PyByteArray_AS_STRING(obj);}
@@ -490,8 +491,10 @@ static void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 
 // -------- BIG FUNCTIONS:
 
-void pybind11::non_limited_api::pybind11NLA_buffer_info_ctor(buffer_info &self, Py_buffer *view, bool ownview)
+void pybind11::non_limited_api::pybind11NLA_buffer_info_ctor(buffer_info &self, Py_buffer_ *view_, bool ownview)
 {
+    Py_buffer *view = (Py_buffer *)view_;
+
     self = buffer_info(
           view->buf,
           view->itemsize,

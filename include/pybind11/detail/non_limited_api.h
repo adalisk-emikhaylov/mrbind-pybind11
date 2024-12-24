@@ -10,11 +10,15 @@
 #endif
 
 #ifdef Py_LIMITED_API
-typedef struct bufferinfo Py_buffer;
 typedef struct _heaptypeobject PyHeapTypeObject;
 typedef struct _typeobject PyTypeObject;
 typedef struct { double real; double imag; } Py_complex;
 typedef struct PyConfig PyConfig;
+
+// We must not use this in our own API below, because the definitions are different in different Python versions.
+// Instead we provide our own type `Py_buffer_` below for use in our own API.
+// This one is defined solely for the rest of the Pybind.
+typedef void Py_buffer;
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -45,6 +49,10 @@ PYBIND11_NAMESPACE_BEGIN(non_limited_api)
 
 // This is separate from the rest of the forward declarations, because the target struct is unnamed and I can't find a good way to forward-declare it.
 typedef struct PyStatus_ PyStatus_;
+// This is separate from the rest of the forward declarations because different Python versions define the original `Py_buffer` differently,
+//   leading to mangling mismatches. So we can't use that in the interface and have to use our own type.
+// It's always used as a pointer, so `Py_buffer_ *` becomes `void *`.
+typedef void Py_buffer_;
 
 using namespace detail;
 
@@ -71,7 +79,9 @@ using namespace detail;
 #define PYBIND11_NONLIMITEDAPI_API_IMPL
 #endif
 
-PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix);
+// `app_suffix` can be null.
+// `library_dir` can be empty, then it's ignored.
+PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir);
 
 #ifndef PYBIND11_NONLIMITEDAPI_FUNC
 #define PYBIND11_NONLIMITEDAPI_FUNC(ret_, func_, params_, param_uses_) \
@@ -84,8 +94,8 @@ PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_spe
 // Trailing `_` in some functions below to avoid conflicts with macros with the same names.
 // The macros are present even in the limited API, but they are broken.
 
-PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_Release, (Py_buffer *buf), (buf))
-PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_delete, (Py_buffer *buf), (buf))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_Release, (Py_buffer_ *buf), (buf))
+PYBIND11_NONLIMITEDAPI_FUNC(void, PyBuffer_delete, (Py_buffer_ *buf), (buf))
 PYBIND11_NONLIMITEDAPI_FUNC(int, PyGILState_Check, (), ())
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject **, PySequence_Fast_ITEMS_, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(char *, PyByteArray_AS_STRING_, (PyObject *obj), (obj))
@@ -105,7 +115,7 @@ PYBIND11_NONLIMITEDAPI_FUNC(const char *, obj_class_name, (PyObject *obj), (obj)
 PYBIND11_NONLIMITEDAPI_FUNC(std::string, error_fetch_and_normalize_format_value_and_trace, (const error_fetch_and_normalize &self), (self))
 PYBIND11_NONLIMITEDAPI_FUNC(handle, get_function, (handle value), (value))
 PYBIND11_NONLIMITEDAPI_FUNC(bool, PyStaticMethod_Check, (PyObject *o), (o))
-PYBIND11_NONLIMITEDAPI_FUNC(void, buffer_info_ctor, (buffer_info &self, Py_buffer *view, bool ownview), (self, view, ownview))
+PYBIND11_NONLIMITEDAPI_FUNC(void, buffer_info_ctor, (buffer_info &self, Py_buffer_ *view, bool ownview), (self, view, ownview))
 PYBIND11_NONLIMITEDAPI_FUNC(void, handle_throw_gilstate_error, (const handle &self, const std::string &function_name), (self, function_name))
 PYBIND11_NONLIMITEDAPI_FUNC(buffer_info, buffer_request, (const buffer &self, bool writable), (self, writable))
 PYBIND11_NONLIMITEDAPI_FUNC(void, memoryview_ctor, (memoryview &self, const buffer_info &info), (self, info))
@@ -163,13 +173,50 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #define PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE nullptr
 #endif
 
+#ifdef PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB
+#define PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH / PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB
+#else
+#define PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH
+#endif
+
+#ifdef _WIN32
+#define PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(module_) \
+    []{ \
+        HMODULE module_handle = NULL; \
+        if (!GetModuleHandleExW( \
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, \
+            (LPCTSTR)MR::SystemPath::getLibraryPath, \
+            &module_handle \
+        )) \
+        { \
+            throw std::runtime_error( "pybind11 non-limited-api: Failed to get the self library path." ); \
+        } \
+        \
+        wchar_t path[MAX_PATH]; \
+        if (auto size = GetModuleFileNameW( module_handle, path, MAX_PATH ); size == 0) \
+            throw std::runtime_error( "pybind11 non-limited-api: Failed to get the self library path." ); \
+        else if (size == MAX_PATH) \
+            throw std::runtime_error( "pybind11 non-limited-api: The self library path is too long." ); \
+        \
+        return std::filesystem::path(path).parent_path() PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH; \
+    }();
+#else
+#define PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(module_) \
+    []{ \
+        Dl_info info; \
+        if (!dladdr((void*)PYBIND11_CONCAT(PyInit_, module_), &info)) \
+            throw std::runtime_error( "pybind11 non-limited-api: Failed to get the self library path." ); \
+        return std::filesystem::path(info.dli_fname).parent_path() PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH; \
+    }()
+#endif
+
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     static ::pybind11::module_::module_def PYBIND11_CONCAT(pybind11_module_def_, name)            \
         PYBIND11_MAYBE_UNUSED;                                                                    \
     PYBIND11_MAYBE_UNUSED                                                                         \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(true, PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE); \
+        pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(true, PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE, PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(name)); \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
         auto m = ::pybind11::module_::create_extension_module(                                    \
             PYBIND11_TOSTRING(name),                                                              \

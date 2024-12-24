@@ -3,10 +3,10 @@
 #include "pybind11/pybind11.h"
 
 #ifdef _WIN32
-#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + L'/' + std::wstring(file.begin(), file.end()) + ".dll").c_str())
+#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + std::wstring(file.begin(), file.end()) + ".dll").c_str())
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR std::to_string(GetLastError()).c_str()
 #else
-#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + "/lib" + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
+#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + "lib" + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR dlerror()
 #endif
 
@@ -16,42 +16,11 @@ static void *&SharedLibraryHandle()
     return ret;
 }
 
-void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix)
+void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir)
 {
     void *&handle = SharedLibraryHandle();
     if (handle)
         return; // Already loaded.
-
-    // Determine the executable directory.
-    #if defined(__APPLE__)
-    std::string dir = []{
-        std::string ret(PATH_MAX);
-        std::uint32_t size = std::uint32_t(ret.size() + 1);
-        if (_NSGetExecutablePath(path, &size))
-        {
-            ret.resize(size - 1);
-            if (_NSGetExecutablePath(path, &size))
-                throw std::runtime_error( "Executable path is too long." );
-        }
-        if (auto sep = ret.find_last_of('/'); sep != std::string::npos)
-            ret.resize(sep);
-        return ret;
-    }();
-    #elif defined(_WIN32)
-    #define PYBIND11_NONLIMITEDAPI_EXE_DIR
-    std::wstring dir = []{
-        std::wstring ret(MAX_PATH, '\0');
-        if (auto out_size = GetModuleFileNameW(NULL, ret.data(), ret.size()); out_size == 0)
-            throw std::runtime_error( "Failed to get executable path." );
-        else if (size == ret.size())
-            throw std::runtime_error( "Executable path is too long." );
-        if (auto sep = ret.find_last_of('/'); sep != std::string::npos)
-            ret.resize(sep);
-        return ret;
-    }()
-    #else
-    std::string dir = std::filesystem::weakly_canonical("/proc/self/exe").parent_path().string();
-    #endif
 
     std::string file = "pybind11nonlimitedapi";
     if (app_suffix)
@@ -63,11 +32,29 @@ void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_spe
     if (use_version_specific_lib)
     {
         std::string_view ver = Py_GetVersion();
-        if (auto sep = ver.find_first_of(' '); sep != std::string_view::npos)
-            ver = ver.substr(0, sep);
 
-        file += '_';
-        file += ver;
+        // Get `X.Y` from the beginning of the version string.
+        if (auto sep = ver.find_first_of('.'); sep != std::string_view::npos)
+        {
+            sep = ver.find_first_of(". ", sep + 1);
+            if (sep != std::string_view::npos)
+            {
+                file += '_';
+                file += ver.substr(0, sep);
+            }
+        }
+    }
+
+    // Get a path to this library.
+    #ifdef _WIN32
+    std::wstring dir;
+    #else
+    std::string dir;
+    #endif
+    if (!library_dir.empty())
+    {
+        dir = library_dir.native();
+        dir += '/';
     }
 
     handle = PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file);

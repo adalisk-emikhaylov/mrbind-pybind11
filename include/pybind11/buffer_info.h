@@ -45,7 +45,7 @@ PYBIND11_NAMESPACE_END(detail)
 
 /// Information record describing a Python buffer object
 struct buffer_info {
-    friend void non_limited_api::pybind11NLA_buffer_info_ctor(buffer_info &self, Py_buffer *view, bool ownview);
+    friend void non_limited_api::pybind11NLA_buffer_info_ctor(buffer_info &self, non_limited_api::Py_buffer_ *view, bool ownview);
 
     void *ptr = nullptr;          // Pointer to the underlying storage
     ssize_t itemsize = 0;         // Size of individual items in bytes
