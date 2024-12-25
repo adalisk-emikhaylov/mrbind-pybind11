@@ -363,7 +363,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // efficient for small allocations like the one we're doing here;
         // for larger allocations they are just wrappers around malloc.
         // TODO: is this still true for pure Python 3.6?
-        nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
+        nonsimple.values_and_holders = (void **) PyMem_Malloc(space * sizeof(void *));
         if (!nonsimple.values_and_holders) {
             throw std::bad_alloc();
         }

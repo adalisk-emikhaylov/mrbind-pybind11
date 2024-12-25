@@ -23,7 +23,7 @@ void        pybind11::non_limited_api::pybind11NLA_PyTuple_SET_ITEM_        (PyO
 ssize_t     pybind11::non_limited_api::pybind11NLA_PyList_GET_SIZE_         (PyObject *obj)                                    {return PyList_GET_SIZE(obj);}
 void        pybind11::non_limited_api::pybind11NLA_PyList_SET_ITEM_         (PyObject *obj, ssize_t i, PyObject *value)        {PyList_SET_ITEM(obj, i, value);}
 PyObject *  pybind11::non_limited_api::pybind11NLA_PyStaticMethod_New       (PyObject *obj)                                    {return ::PyStaticMethod_New(obj);}
-int         pybind11::non_limited_api::pybind11NLA_PyObject_CheckBuffer     (PyObject *obj)                                    {return ::PyObject_CheckBuffer(obj);}
+int         pybind11::non_limited_api::pybind11NLA_PyObject_CheckBuffer_    (PyObject *obj)                                    {return PyObject_CheckBuffer(obj);}
 ssize_t     pybind11::non_limited_api::pybind11NLA_PyObject_LengthHint      (PyObject *obj, ssize_t i)                         {return ::PyObject_LengthHint(obj, i);}
 PyObject ** pybind11::non_limited_api::pybind11NLA__PyObject_GetDictPtr     (PyObject *obj)                                    {return ::_PyObject_GetDictPtr(obj);}
 PyObject *  pybind11::non_limited_api::pybind11NLA_PyCFunction_GET_SELF_    (PyObject *obj)                                    {return PyCFunction_GET_SELF(obj);}

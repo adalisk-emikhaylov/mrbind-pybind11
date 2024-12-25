@@ -106,7 +106,7 @@ PYBIND11_NONLIMITEDAPI_FUNC(void, PyTuple_SET_ITEM_, (PyObject *obj, ssize_t i, 
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyList_GET_SIZE_, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(void, PyList_SET_ITEM_, (PyObject *obj, ssize_t i, PyObject *value), (obj, i, value))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyStaticMethod_New, (PyObject *obj), (obj))
-PYBIND11_NONLIMITEDAPI_FUNC(int, PyObject_CheckBuffer, (PyObject *obj), (obj))
+PYBIND11_NONLIMITEDAPI_FUNC(int, PyObject_CheckBuffer_, (PyObject *obj), (obj)) // This is a macro only in Python 3.8, not in the latter versions. So we have to use a different name here.
 PYBIND11_NONLIMITEDAPI_FUNC(ssize_t, PyObject_LengthHint, (PyObject *obj, ssize_t i), (obj, i))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject **, _PyObject_GetDictPtr, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyCFunction_GET_SELF_, (PyObject *obj), (obj))

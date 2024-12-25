@@ -2157,7 +2157,7 @@ public:
 
 class buffer : public object {
 public:
-    PYBIND11_OBJECT_DEFAULT(buffer, object, non_limited_api::PyObject_CheckBuffer)
+    PYBIND11_OBJECT_DEFAULT(buffer, object, non_limited_api::PyObject_CheckBuffer_)
 
     buffer_info request(bool writable = false) const {
         return non_limited_api::buffer_request(*this, writable);
