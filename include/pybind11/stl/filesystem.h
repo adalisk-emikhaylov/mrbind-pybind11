@@ -108,7 +108,7 @@ public:
 
     PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
     static constexpr auto arg_name = const_name("Union[os.PathLike, str, bytes]");
-    static constexpr auto return_name = const_name("os.PathLike"); // This originally was just `Path`, which isn't a valid type, which made stubgen complain. I've picked `os.PathLike` because that's what the old versions used. When this gets fixed upstream, accept whatever type they choose.
+    static constexpr auto return_name = const_name("pathlib.Path"); // This originally was just `Path`, which isn't a valid type, which made stubgen complain. When this gets fixed upstream, accept whatever type they choose.
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
