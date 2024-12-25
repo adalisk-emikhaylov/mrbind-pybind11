@@ -1835,3 +1835,11 @@ bool pybind11::non_limited_api::pybind11NLA_PyObjectIsInstanceWithOneOfTpNames(P
     }
     return false;
 }
+
+PyInterpreterState *pybind11::non_limited_api::pybind11NLA_PyInterpreterState_Get() {
+    #if PY_VERSION_HEX < 0x03090000
+    return ::_PyInterpreterState_Get();
+    #else
+    return ::PyInterpreterState_Get();
+    #endif
+}

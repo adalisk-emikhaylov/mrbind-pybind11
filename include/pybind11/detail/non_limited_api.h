@@ -165,6 +165,7 @@ PYBIND11_NONLIMITEDAPI_FUNC(const char *, PyStatus_get_err_msg, (const PyStatus_
 PYBIND11_NONLIMITEDAPI_FUNC(PyStatus_ *, Py_InitializeFromConfig, (const PyConfig *config), (config))
 PYBIND11_NONLIMITEDAPI_FUNC(bool, PyObjectIsInstanceWithOneOfTpNames, (PyObject *obj, std::initializer_list<const char *> tp_names), (obj, tp_names))
 PYBIND11_NONLIMITEDAPI_FUNC(int, PyGen_Check_, (PyObject *obj), (obj))
+PYBIND11_NONLIMITEDAPI_FUNC(PyInterpreterState *, PyInterpreterState_Get, (), ())
 
 PYBIND11_NAMESPACE_END(non_limited_api)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

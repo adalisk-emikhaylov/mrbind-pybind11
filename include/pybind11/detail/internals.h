@@ -64,42 +64,16 @@ constexpr const char *internals_function_record_capsule_name = "pybind11_functio
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
-// Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
-// `Py_LIMITED_API` anyway.
-#if PYBIND11_INTERNALS_VERSION > 4
-#    define PYBIND11_TLS_KEY_REF Py_tss_t &
-#    if defined(__clang__)
-#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
-            _Pragma("clang diagnostic push")                                         /**/         \
-                _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/         \
-                Py_tss_t var                                                                      \
-                = Py_tss_NEEDS_INIT;                                                              \
-            _Pragma("clang diagnostic pop")
-#    elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
-#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
-            _Pragma("GCC diagnostic push")                                         /**/           \
-                _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/           \
-                Py_tss_t var                                                                      \
-                = Py_tss_NEEDS_INIT;                                                              \
-            _Pragma("GCC diagnostic pop")
-#    else
-#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
-#    endif
-#    define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
-#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
-#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
-#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
-#    define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
-#else
-#    define PYBIND11_TLS_KEY_REF Py_tss_t *
-#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
-#    define PYBIND11_TLS_KEY_CREATE(var)                                                          \
+
+// This is patched to allocate `Py_tss_t` on the heap instead of by value, because the layout of that struct is hidden when `Py_LIMITED_API` is defined.
+#define PYBIND11_TLS_KEY_REF Py_tss_t *
+#define PYBIND11_TLS_KEY_INIT(var) Py_tss_t *var = nullptr;
+#define PYBIND11_TLS_KEY_CREATE(var)                                                          \
         (((var) = PyThread_tss_alloc()) != nullptr && (PyThread_tss_create((var)) == 0))
-#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
-#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
-#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
-#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
-#endif
+#define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get((key))
+#define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
@@ -275,10 +249,7 @@ struct type_info {
 
 /// Each module locally stores a pointer to the `internals` data. The data
 /// itself is shared among modules with the same `PYBIND11_INTERNALS_ID`.
-inline internals **&get_internals_pp() {
-    static internals **internals_pp = nullptr;
-    return internals_pp;
-}
+PYBIND11_NONLIMITEDAPI_API internals **&get_internals_pp();
 
 // forward decl
 inline void translate_exception(std::exception_ptr);
@@ -392,11 +363,7 @@ inline object get_python_state_dict() {
 #if PYBIND11_INTERNALS_VERSION <= 4 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
-#    if PY_VERSION_HEX < 0x03090000
-    PyInterpreterState *istate = _PyInterpreterState_Get();
-#    else
-    PyInterpreterState *istate = PyInterpreterState_Get();
-#    endif
+    PyInterpreterState *istate = non_limited_api::PyInterpreterState_Get();
     if (istate) {
         state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
     }
@@ -488,15 +455,7 @@ struct local_internals {
 };
 
 /// Works like `get_internals`, but for things which are locally registered.
-inline local_internals &get_local_internals() {
-    // Current static can be created in the interpreter finalization routine. If the later will be
-    // destroyed in another static variable destructor, creation of this static there will cause
-    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
-    // local_internals static. One can read more about the problem and current solution here:
-    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
-    static auto *locals = new local_internals();
-    return *locals;
-}
+PYBIND11_NONLIMITEDAPI_API local_internals &get_local_internals();
 
 #ifdef Py_GIL_DISABLED
 #    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)

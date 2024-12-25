@@ -65,6 +65,21 @@ void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_spe
     }
 }
 
+// Some pybind functions that have static variables and therefore must be defined out of line:
+pybind11::detail::internals **&pybind11::detail::get_internals_pp() {
+    static internals **internals_pp = nullptr;
+    return internals_pp;
+}
+pybind11::detail::local_internals &pybind11::detail::get_local_internals() {
+    // Current static can be created in the interpreter finalization routine. If the later will be
+    // destroyed in another static variable destructor, creation of this static there will cause
+    // static deinitialization fiasco. In order to avoid it we avoid destruction of the
+    // local_internals static. One can read more about the problem and current solution here:
+    // https://google.github.io/styleguide/cppguide.html#Static_and_Global_Variables
+    static auto *locals = new local_internals();
+    return *locals;
+}
+
 #ifdef _WIN32
 #define PYBIND11_NONLIMITEDAPI_LOAD_SYMBOL(name_) GetProcAddress(SharedLibraryHandle(), name_)
 #else
