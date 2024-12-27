@@ -4,8 +4,8 @@
 
 #include "common.h"
 
+#include <filesystem>
 #if !defined(__APPLE__) && !defined(_WIN32)
-#include <filesystem> // For `std::filesystem::weakly_canonical()`.
 #include <dlfcn.h> // For `dlopen` and friends.
 #endif
 
