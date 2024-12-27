@@ -226,7 +226,7 @@ PYBIND11_NAMESPACE_END(detail)
 class handle : public detail::object_api<handle> {
 public:
     friend void non_limited_api::pybind11NLA_handle_throw_gilstate_error(const handle &self, const std::string &function_name);
-    friend buffer_info non_limited_api::pybind11NLA_buffer_request(const buffer &self, bool writable);
+    friend void non_limited_api::pybind11NLA_buffer_request(buffer_info &ret, const buffer &self, bool writable);
     friend void non_limited_api::pybind11NLA_memoryview_ctor(memoryview &self, const buffer_info &info);
     friend void pybind11::non_limited_api::pybind11NLA_generic_type_install_buffer_funcs(detail::generic_type &self, buffer_info *(*get_buffer)(PyObject *, void *), void *get_buffer_data);
 
@@ -348,8 +348,8 @@ inline void set_error(const handle &type, const handle &value) {
 \endrst */
 class object : public handle {
 public:
-    friend pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_memory(void *mem, ssize_t size, bool readonly);
-    friend pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_buffer(void *ptr, ssize_t itemsize, const char *format, detail::any_container<ssize_t> shape, detail::any_container<ssize_t> strides, bool readonly);
+    friend void pybind11::non_limited_api::pybind11NLA_memoryview_from_memory(pybind11::memoryview &ret, void *mem, ssize_t size, bool readonly);
+    friend void pybind11::non_limited_api::pybind11NLA_memoryview_from_buffer(pybind11::memoryview &ret, void *ptr, ssize_t itemsize, const char *format, detail::any_container<ssize_t> shape, detail::any_container<ssize_t> strides, bool readonly);
 
     object() = default;
     PYBIND11_DEPRECATED("Use reinterpret_borrow<object>() or reinterpret_steal<object>()")
@@ -812,7 +812,9 @@ inline ssize_t hash(handle obj) {
 PYBIND11_NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value)
 {
-    return non_limited_api::get_function(value);
+    handle ret{};
+    non_limited_api::get_function(ret, value);
+    return ret;
 }
 
 // Reimplementation of python's dict helper functions to ensure that exceptions
@@ -2160,11 +2162,18 @@ public:
     PYBIND11_OBJECT_DEFAULT(buffer, object, non_limited_api::PyObject_CheckBuffer_)
 
     buffer_info request(bool writable = false) const {
-        return non_limited_api::buffer_request(*this, writable);
+        buffer_info ret{};
+        non_limited_api::buffer_request(ret, *this, writable);
+        return ret;
     }
 };
 
 class memoryview : public object {
+    // On MSVC we can't return this class (`memoryview`) from `extern "C"` functions by value,
+    //   so we must return it through a reference parameter.
+    // This means `memoryview` must be construtable in a null state, which is what this new constructor accomplishes.
+    struct NonLimitedApiCtor {explicit NonLimitedApiCtor() = default;};
+    memoryview(NonLimitedApiCtor) {}
 public:
     PYBIND11_OBJECT_CVT(memoryview, object, PyMemoryView_Check, PyMemoryView_FromObject)
 
@@ -2212,7 +2221,9 @@ public:
                                   detail::any_container<ssize_t> strides,
                                   bool readonly = false)
     {
-        return non_limited_api::memoryview_from_buffer(ptr, itemsize, format, std::move(shape), std::move(strides), readonly);
+        memoryview ret{NonLimitedApiCtor{}};
+        non_limited_api::memoryview_from_buffer(ret, ptr, itemsize, format, std::move(shape), std::move(strides), readonly);
+        return ret;
     }
 
     static memoryview from_buffer(const void *ptr,
@@ -2258,7 +2269,9 @@ public:
            https://docs.python.org/c-api/memoryview.html#c.PyMemoryView_FromMemory
      \endrst */
     static memoryview from_memory(void *mem, ssize_t size, bool readonly = false) {
-        return non_limited_api::memoryview_from_memory(mem, size, readonly);
+        memoryview ret{NonLimitedApiCtor{}};
+        non_limited_api::memoryview_from_memory(ret, mem, size, readonly);
+        return ret;
     }
 
     static memoryview from_memory(const void *mem, ssize_t size) {

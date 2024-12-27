@@ -2352,7 +2352,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline function get_type_override(const void *this_ptr, const type_info *this_type, const char *name)
 {
-    return non_limited_api::get_type_override(this_ptr, this_type, name);
+    function ret{};
+    non_limited_api::get_type_override(ret, this_ptr, this_type, name);
+    return ret;
 }
 PYBIND11_NAMESPACE_END(detail)
 

@@ -670,20 +670,19 @@ std::string pybind11::non_limited_api::pybind11NLA_error_fetch_and_normalize_for
     return result;
 }
 
-pybind11::handle pybind11::non_limited_api::pybind11NLA_get_function(handle value) {
+void pybind11::non_limited_api::pybind11NLA_get_function(handle &ret, handle value) {
     if (value) {
         if (PyInstanceMethod_Check(value.ptr())) {
-            value = PyInstanceMethod_GET_FUNCTION(value.ptr());
+            ret = PyInstanceMethod_GET_FUNCTION(value.ptr());
         } else if (PyMethod_Check(value.ptr())) {
-            value = PyMethod_GET_FUNCTION(value.ptr());
+            ret = PyMethod_GET_FUNCTION(value.ptr());
         }
     }
-    return value;
 }
 
 bool pybind11::non_limited_api::pybind11NLA_PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 
-pybind11::buffer_info pybind11::non_limited_api::pybind11NLA_buffer_request(const buffer &self, bool writable) {
+void pybind11::non_limited_api::pybind11NLA_buffer_request(pybind11::buffer_info &ret, const buffer &self, bool writable) {
     int flags = PyBUF_STRIDES | PyBUF_FORMAT;
     if (writable) {
         flags |= PyBUF_WRITABLE;
@@ -693,7 +692,7 @@ pybind11::buffer_info pybind11::non_limited_api::pybind11NLA_buffer_request(cons
         delete view;
         throw error_already_set();
     }
-    return buffer_info(view);
+    ret = buffer_info(view);
 }
 
 void pybind11::non_limited_api::pybind11NLA_memoryview_ctor(memoryview &self, const buffer_info &info) {
@@ -708,16 +707,18 @@ void pybind11::non_limited_api::pybind11NLA_memoryview_ctor(memoryview &self, co
     }
 }
 
-pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_memory(void *mem, ssize_t size, bool readonly) {
+void pybind11::non_limited_api::pybind11NLA_memoryview_from_memory(memoryview &ret, void *mem, ssize_t size, bool readonly) {
     PyObject *ptr = PyMemoryView_FromMemory(
         reinterpret_cast<char *>(mem), size, (readonly) ? PyBUF_READ : PyBUF_WRITE);
     if (!ptr) {
         pybind11_fail("Could not allocate memoryview object!");
     }
-    return memoryview(object(ptr, object::stolen_t{}));
+    ret = memoryview(object(ptr, object::stolen_t{}));
 }
 
-pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_buffer(void *ptr,
+void pybind11::non_limited_api::pybind11NLA_memoryview_from_buffer(
+                                          memoryview &ret,
+                                          void *ptr,
                                           ssize_t itemsize,
                                           const char *format,
                                           detail::any_container<ssize_t> shape,
@@ -747,7 +748,7 @@ pybind11::memoryview pybind11::non_limited_api::pybind11NLA_memoryview_from_buff
     if (!obj) {
         throw error_already_set();
     }
-    return memoryview(object(obj, object::stolen_t{}));
+    ret = memoryview(object(obj, object::stolen_t{}));
 }
 
 pybind11::detail::internals &pybind11::non_limited_api::pybind11NLA_get_internals() {
@@ -1671,7 +1672,7 @@ self.m_base.attr(op) = cpp_function(                                            
                                            pos_only());
 }
 
-pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {
+void pybind11::non_limited_api::pybind11NLA_get_type_override(function &ret, const void *this_ptr, const type_info *this_type, const char *name) {
     handle self = get_object_handle(this_ptr, this_type);
     if (!self) {
         return function();
@@ -1686,7 +1687,7 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
         return cache.find(key) != cache.end();
     });
     if (not_overridden) {
-        return function();
+        return;
     }
 
     function override = getattr(self, name, function());
@@ -1694,7 +1695,7 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
         with_internals([&](internals &internals) {
             internals.inactive_override_cache.insert(std::move(key));
         });
-        return function();
+        return;
     }
 
     /* Don't call dispatch code if invoked from overridden function.
@@ -1725,7 +1726,7 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
                 if (self_caller == self.ptr()) {
                     Py_DECREF(f_code);
                     Py_DECREF(frame);
-                    return function();
+                    return;
                 }
             }
         }
@@ -1740,7 +1741,7 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
         PyObject *self_caller
             = dict_getitem(frame->f_locals, non_limited_api::PyTuple_GET_ITEM_(frame->f_code->co_varnames, 0));
         if (self_caller == self.ptr()) {
-            return function();
+            return;
         }
     }
 #    endif
@@ -1769,10 +1770,10 @@ pybind11::function pybind11::non_limited_api::pybind11NLA_get_type_override(cons
         throw error_already_set();
     Py_DECREF(result);
     if (d["self"].is_none())
-        return function();
+        return;
 #endif
 
-    return override;
+    ret = override;
 }
 
 void pybind11::non_limited_api::pybind11NLA_initialize_interpreter(

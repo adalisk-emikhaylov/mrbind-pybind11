@@ -3,7 +3,10 @@
 #include "pybind11/pybind11.h"
 
 #ifdef _WIN32
-#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + std::wstring(file.begin(), file.end()) + ".dll").c_str())
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX 1
+#include <windows.h>
+#define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + std::wstring(file.begin(), file.end()) + L".dll").c_str())
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR std::to_string(GetLastError()).c_str()
 #else
 #define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + "lib" + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
@@ -81,7 +84,7 @@ pybind11::detail::local_internals &pybind11::detail::get_local_internals() {
 }
 
 #ifdef _WIN32
-#define PYBIND11_NONLIMITEDAPI_LOAD_SYMBOL(name_) GetProcAddress(SharedLibraryHandle(), name_)
+#define PYBIND11_NONLIMITEDAPI_LOAD_SYMBOL(name_) (void *)GetProcAddress((HMODULE)SharedLibraryHandle(), name_)
 #else
 #define PYBIND11_NONLIMITEDAPI_LOAD_SYMBOL(name_) dlsym(SharedLibraryHandle(), name_)
 #endif
