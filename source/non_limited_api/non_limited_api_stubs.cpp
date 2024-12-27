@@ -3,9 +3,6 @@
 #include "pybind11/pybind11.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX 1
-#include <windows.h>
 #define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + std::wstring(file.begin(), file.end()) + L".dll").c_str())
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR std::to_string(GetLastError()).c_str()
 #else

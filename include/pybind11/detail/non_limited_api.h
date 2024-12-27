@@ -8,6 +8,11 @@
 #if !defined(__APPLE__) && !defined(_WIN32)
 #include <dlfcn.h> // For `dlopen` and friends.
 #endif
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX 1
+#include <windows.h>
+#endif
 
 #ifdef Py_LIMITED_API
 typedef struct _heaptypeobject PyHeapTypeObject;
@@ -189,7 +194,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         HMODULE module_handle = NULL; \
         if (!GetModuleHandleExW( \
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, \
-            (LPCTSTR)PYBIND11_CONCAT(PyInit_, module_), \
+            (LPCWSTR)PYBIND11_CONCAT(PyInit_, module_), \
             &module_handle \
         )) \
         { \
