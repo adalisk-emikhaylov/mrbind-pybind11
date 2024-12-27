@@ -384,7 +384,7 @@ static PyThreadState *get_thread_state_unchecked() {
 
 static int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
     // Look for a `get_buffer` implementation in this type's info or any bases (following MRO).
-    type_info *tinfo = nullptr;
+    detail::type_info *tinfo = nullptr;
     for (auto type : reinterpret_borrow<tuple>(Py_TYPE(obj)->tp_mro)) {
         tinfo = get_type_info((PyTypeObject *) type.ptr());
         if (tinfo && tinfo->get_buffer) {
@@ -1675,7 +1675,7 @@ self.m_base.attr(op) = cpp_function(                                            
 void pybind11::non_limited_api::pybind11NLA_get_type_override(function &ret, const void *this_ptr, const type_info *this_type, const char *name) {
     handle self = get_object_handle(this_ptr, this_type);
     if (!self) {
-        return function();
+        return;
     }
     handle type = type::handle_of(self);
     auto key = std::make_pair(type.ptr(), name);

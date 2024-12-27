@@ -56,9 +56,12 @@ typedef void Py_buffer_;
 
 using namespace detail;
 
-#ifdef __clang__
-// warning: 'pybind11NLA_error_fetch_and_normalize_format_value_and_trace' has C-linkage specified, but returns user-defined type 'std::string' (aka 'basic_string<char>') which is incompatible with C [-Wreturn-type-c-linkage]
+#if defined(__clang__)
+// warning: 'X' has C-linkage specified, but returns user-defined type 'std::string' (aka 'basic_string<char>') which is incompatible with C [-Wreturn-type-c-linkage]
 #define PYBIND11_NONLIMITEDAPI_SILENCE_EXTERN_C_WARNING(...) _Pragma("clang diagnostic push") _Pragma("clang diagnostic ignored \"-Wreturn-type-c-linkage\"") __VA_ARGS__ _Pragma("clang diagnostic pop")
+#elif defined(_MSC_VER)
+// 'X' has C-linkage specified, but returns UDT 'std::basic_string<char,std::char_traits<char>,std::allocator<char>>' which is incompatible with C
+#define PYBIND11_NONLIMITEDAPI_SILENCE_EXTERN_C_WARNING(...) _Pragma("warning(push)") _Pragma("warning(disable: 4190)") __VA_ARGS__ _Pragma("warning(pop)")
 #else
 #define PYBIND11_NONLIMITEDAPI_SILENCE_EXTERN_C_WARNING(...) __VA_ARGS__
 #endif
@@ -186,7 +189,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         HMODULE module_handle = NULL; \
         if (!GetModuleHandleExW( \
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, \
-            (LPCTSTR)MR::SystemPath::getLibraryPath, \
+            (LPCTSTR)PYBIND11_CONCAT(PyInit_, module_), \
             &module_handle \
         )) \
         { \
@@ -200,7 +203,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
             throw std::runtime_error( "pybind11 non-limited-api: The self library path is too long." ); \
         \
         return std::filesystem::path(path).parent_path() PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH; \
-    }();
+    }()
 #else
 #define PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(module_) \
     []{ \
