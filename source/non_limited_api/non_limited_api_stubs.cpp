@@ -6,6 +6,7 @@
 #define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) LoadLibraryW((dir + std::wstring(file.begin(), file.end()) + L".dll").c_str())
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR std::to_string(GetLastError()).c_str()
 #else
+#include <dlfcn.h> // For `dlopen` and friends.
 #define PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file) dlopen((dir + "lib" + file + ".so").c_str(), RTLD_NOW | RTLD_GLOBAL)
 #define PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR dlerror()
 #endif
