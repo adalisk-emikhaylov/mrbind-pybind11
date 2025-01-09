@@ -22,6 +22,10 @@ if (${PYBIND11_NONLIMITEDAPI_BUILD_STUBS})
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
   )
+
+  if (APPLE)
+    target_link_options(pybind11nonlimitedapi_stubs PRIVATE -undefined dynamic_lookup)
+  endif()
 endif()
 
 set(PYBIND11_NONLIMITEDAPI_PYTHON_MIN_VERSION_HEX "" CACHE STRING "A hex Python version to bake into the library, e.g. `0x030800f0` for 3.8 (the `f0` suffix is always there and means a release version).")
@@ -37,6 +41,10 @@ else()
   target_include_directories(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC ${Python_INCLUDE_DIRS})
   target_link_libraries(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC pybind11nonlimitedapi_stubs)
   target_link_libraries(${PYBIND11_NONLIMITEDAPI_LIBNAME} PUBLIC Python::Python)
+
+  if (APPLE)
+    target_link_options(${PYBIND11_NONLIMITEDAPI_LIBNAME} PRIVATE -undefined dynamic_lookup)
+  endif()
 
   if (NOT(${PYBIND11_NONLIMITEDAPI_LIBRARY_OUTPUT_DIR} STREQUAL ""))
     set_target_properties(${PYBIND11_NONLIMITEDAPI_LIBNAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYBIND11_NONLIMITEDAPI_LIBRARY_OUTPUT_DIR})
