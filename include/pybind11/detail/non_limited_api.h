@@ -10,6 +10,7 @@
 #define NOMINMAX 1
 #include <windows.h>
 #else
+#define _GNU_SOURCE 1 // `<dlfcn.h>` needs this to define the things we need.
 #include <dlfcn.h> // `dladdr` and friends.
 #endif
 
