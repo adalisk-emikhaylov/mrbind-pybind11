@@ -9,6 +9,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX 1
 #include <windows.h>
+#else
+#include <dlfcn.h> // `dladdr` and friends.
 #endif
 
 #ifdef Py_LIMITED_API
