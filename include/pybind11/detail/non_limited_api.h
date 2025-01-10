@@ -10,7 +10,8 @@
 #define NOMINMAX 1
 #include <windows.h>
 #else
-#define _GNU_SOURCE 1 // `<dlfcn.h>` needs this to define the things we need.
+// NOTE: If you get `error: unknown type name 'Dl_info'` when using this patched `PYBIND11_MODULE(...)`,
+//   define `_GNU_SOURCE`. Use compiler flags to make sure it's early enough.
 #include <dlfcn.h> // `dladdr` and friends.
 #endif
 
