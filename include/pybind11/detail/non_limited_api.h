@@ -15,11 +15,12 @@
 #include <dlfcn.h> // `dladdr` and friends.
 #endif
 
-#ifdef Py_LIMITED_API
+#if !defined(PYBIND11_NONLIMITEDAPI_ONCE) && defined(Py_LIMITED_API)
+#define PYBIND11_NONLIMITEDAPI_ONCE
 typedef struct _heaptypeobject PyHeapTypeObject;
 typedef struct _typeobject PyTypeObject;
-typedef struct { double real; double imag; } Py_complex;
 typedef struct PyConfig PyConfig;
+typedef struct { double real; double imag; } Py_complex;
 
 // We must not use this in our own API below, because the definitions are different in different Python versions.
 // Instead we provide our own type `Py_buffer_` below for use in our own API.
