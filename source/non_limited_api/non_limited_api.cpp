@@ -670,12 +670,12 @@ std::string pybind11::non_limited_api::pybind11NLA_error_fetch_and_normalize_for
     return result;
 }
 
-void pybind11::non_limited_api::pybind11NLA_get_function(handle &ret, handle value) {
+void pybind11::non_limited_api::pybind11NLA_get_function(handle &value) {
     if (value) {
         if (PyInstanceMethod_Check(value.ptr())) {
-            ret = PyInstanceMethod_GET_FUNCTION(value.ptr());
+            value = PyInstanceMethod_GET_FUNCTION(value.ptr());
         } else if (PyMethod_Check(value.ptr())) {
-            ret = PyMethod_GET_FUNCTION(value.ptr());
+            value = PyMethod_GET_FUNCTION(value.ptr());
         }
     }
 }

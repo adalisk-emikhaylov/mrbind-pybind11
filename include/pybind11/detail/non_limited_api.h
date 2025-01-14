@@ -123,7 +123,7 @@ PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyCFunction_GET_SELF_, (PyObject *obj), 
 
 PYBIND11_NONLIMITEDAPI_FUNC(const char *, obj_class_name, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(std::string, error_fetch_and_normalize_format_value_and_trace, (const error_fetch_and_normalize &self), (self))
-PYBIND11_NONLIMITEDAPI_FUNC(void, get_function, (handle &ret, handle value), (ret, value))
+PYBIND11_NONLIMITEDAPI_FUNC(void, get_function, (handle &value), (value))
 PYBIND11_NONLIMITEDAPI_FUNC(bool, PyStaticMethod_Check, (PyObject *o), (o))
 PYBIND11_NONLIMITEDAPI_FUNC(void, buffer_info_ctor, (buffer_info &self, Py_buffer_ *view, bool ownview), (self, view, ownview))
 PYBIND11_NONLIMITEDAPI_FUNC(void, handle_throw_gilstate_error, (const handle &self, const std::string &function_name), (self, function_name))

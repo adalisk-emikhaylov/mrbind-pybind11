@@ -812,9 +812,8 @@ inline ssize_t hash(handle obj) {
 PYBIND11_NAMESPACE_BEGIN(detail)
 inline handle get_function(handle value)
 {
-    handle ret{};
-    non_limited_api::get_function(ret, value);
-    return ret;
+    non_limited_api::get_function(value);
+    return value;
 }
 
 // Reimplementation of python's dict helper functions to ensure that exceptions
