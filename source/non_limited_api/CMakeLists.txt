@@ -15,6 +15,8 @@ set(PYBIND11_NONLIMITEDAPI_PYTHON_MIN_VERSION_HEX "" CACHE STRING "A hex Python 
 set(PYBIND11_NONLIMITEDAPI_SUFFIX "" CACHE STRING "A custom suffix to append to the built library name. Should normally be `[_AppName][_X.Y]`, where X,Y is the Python version.")
 set(PYBIND11_NONLIMITEDAPI_LIBRARY_OUTPUT_DIR "" CACHE PATH "Replaces the library installation path for the shim.")
 
+include(GNUInstallDirs)
+
 if (${PYBIND11_NONLIMITEDAPI_BUILD_STUBS})
   project(pybind11nonlimitedapi_stubs)
   add_library(pybind11nonlimitedapi_stubs SHARED non_limited_api_stubs.cpp)
@@ -23,9 +25,9 @@ if (${PYBIND11_NONLIMITEDAPI_BUILD_STUBS})
   target_compile_definitions(pybind11nonlimitedapi_stubs PUBLIC PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE=\"${PYBIND11_NONLIMITEDAPI_SUFFIX}\")
 
   install(TARGETS pybind11nonlimitedapi_stubs
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 
   if (APPLE)
@@ -53,8 +55,8 @@ else()
   endif()
 
   install(TARGETS ${PYBIND11_NONLIMITEDAPI_LIBNAME}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
 endif()
