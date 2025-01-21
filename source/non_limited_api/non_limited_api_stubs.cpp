@@ -22,7 +22,7 @@ static void *&SharedLibraryHandle()
     return ret;
 }
 
-void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir)
+void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir, std::vector<std::filesystem::path> library_dir_suffixes)
 {
     void *&handle = SharedLibraryHandle();
     if (handle)
@@ -51,19 +51,32 @@ void pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(bool use_version_spe
         }
     }
 
-    // Get a path to this library.
-    #ifdef _WIN32
-    std::wstring dir;
-    #else
-    std::string dir;
-    #endif
-    if (!library_dir.empty())
-    {
-        dir = library_dir.native();
-        dir += '/';
-    }
+    if (library_dir_suffixes.empty())
+        library_dir_suffixes.push_back(".");
 
-    handle = PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file);
+    for (const auto &suffix : library_dir_suffixes)
+    {
+        // Get a path to this library.
+        #ifdef _WIN32
+        std::wstring dir;
+        #else
+        std::string dir;
+        #endif
+        if (!library_dir.empty())
+        {
+            dir += library_dir.native();
+            dir += '/';
+        }
+        if (suffix != ".")
+        {
+            dir += suffix.native();
+            dir += '/';
+        }
+
+        handle = PYBIND11_NONLIMITEDAPI_DLOPEN(dir, file);
+        if (handle)
+            break;
+    }
     if (!handle)
     {
         std::fprintf(stderr, "pybind11 non-limited-api: Failed to load library `%s` with error `%s`.\n", file.c_str(), PYBIND11_NONLIMITEDAPI_DLOPEN_ERROR);

@@ -5,6 +5,9 @@
 #include "common.h"
 
 #include <filesystem>
+#include <string_view>
+#include <vector>
+#include <utility>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX 1
@@ -89,9 +92,12 @@ using namespace detail;
 #define PYBIND11_NONLIMITEDAPI_API_IMPL
 #endif
 
-// `app_suffix` can be null.
+// Searches for `pybind11nonlimitedapi[_`app_suffix`][_X.Y]` in `library_dir / library_dir_suffixes...` (in all suffixes in order).
+// Setting `use_version_specific_lib` to false removes the `_X.Y` part.
+// Setting `app_suffix` to nullptr removes the `_`+app_suffix part.
 // `library_dir` can be empty, then it's ignored.
-PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir);
+// If `library_dir_suffixes` is empty, `{"."}` is assumed.
+PYBIND11_NONLIMITEDAPI_API void EnsureSharedLibraryIsLoaded(bool use_version_specific_lib, const char *app_suffix, std::filesystem::path library_dir, std::vector<std::filesystem::path> library_dir_suffixes);
 
 #ifndef PYBIND11_NONLIMITEDAPI_FUNC
 #define PYBIND11_NONLIMITEDAPI_FUNC(ret_, func_, params_, param_uses_) \
@@ -184,10 +190,10 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #define PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE nullptr
 #endif
 
-#ifdef PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR
-#define PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH / PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR
-#else
-#define PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH
+// This is a single `|`-separated string.
+// Would normally use a comma-separated list of strings, but nvcc chokes on it (considers `-DA=B,C` to mean `-DA=B -DC`).
+#ifndef PYBIND11_NONLIMITEDAPI_SHIM_PATHS_RELATIVE_TO_LIBRARY_DIR
+#define PYBIND11_NONLIMITEDAPI_SHIM_PATHS_RELATIVE_TO_LIBRARY_DIR ""
 #endif
 
 #ifdef _WIN32
@@ -209,7 +215,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         else if (size == MAX_PATH) \
             throw std::runtime_error( "pybind11 non-limited-api: The self library path is too long." ); \
         \
-        return std::filesystem::path(path).parent_path() PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH; \
+        return std::filesystem::path(path).parent_path(); \
     }()
 #else
 #define PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(module_) \
@@ -217,7 +223,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         Dl_info info; \
         if (!dladdr((void*)PYBIND11_CONCAT(PyInit_, module_), &info)) \
             throw std::runtime_error( "pybind11 non-limited-api: Failed to get the self library path." ); \
-        return std::filesystem::path(info.dli_fname).parent_path() PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH; \
+        return std::filesystem::path(info.dli_fname).parent_path(); \
     }()
 #endif
 
@@ -227,7 +233,22 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
     PYBIND11_MAYBE_UNUSED                                                                         \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(true, PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE, PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(name)); \
+        std::vector<std::filesystem::path> suffixes;                                              \
+        {                                                                                         \
+            std::string_view v = PYBIND11_NONLIMITEDAPI_SHIM_PATHS_RELATIVE_TO_LIBRARY_DIR;       \
+            if (!v.empty())                                                                       \
+            {                                                                                     \
+                while (true)                                                                      \
+                {                                                                                 \
+                    auto pos = v.find_first_of('|'); /* Using a weird separator because nvcc chokes on commas (considers `-DA=B,C` to mean `-DA=B -DC`) */\
+                    suffixes.emplace_back(v.substr(0, pos));                                      \
+                    if (pos == std::string_view::npos)                                            \
+                        break;                                                                    \
+                    v.remove_prefix(pos + 1);                                                     \
+                }                                                                                 \
+            }                                                                                     \
+        }                                                                                         \
+        pybind11::non_limited_api::EnsureSharedLibraryIsLoaded(true, PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE, PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(name), std::move(suffixes)); \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
         auto m = ::pybind11::module_::create_extension_module(                                    \
             PYBIND11_TOSTRING(name),                                                              \
