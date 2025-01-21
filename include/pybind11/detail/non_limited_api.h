@@ -184,10 +184,10 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #define PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE nullptr
 #endif
 
-#ifdef PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB
-#define PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH / PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB
+#ifdef PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR
+#define PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH / PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR
 #else
-#define PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH
+#define PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH
 #endif
 
 #ifdef _WIN32
@@ -209,7 +209,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         else if (size == MAX_PATH) \
             throw std::runtime_error( "pybind11 non-limited-api: The self library path is too long." ); \
         \
-        return std::filesystem::path(path).parent_path() PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH; \
+        return std::filesystem::path(path).parent_path() PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH; \
     }()
 #else
 #define PYBIND11_NONLIMITEDAPI_GET_SHARED_LIBRARY_DIR(module_) \
@@ -217,7 +217,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
         Dl_info info; \
         if (!dladdr((void*)PYBIND11_CONCAT(PyInit_, module_), &info)) \
             throw std::runtime_error( "pybind11 non-limited-api: Failed to get the self library path." ); \
-        return std::filesystem::path(info.dli_fname).parent_path() PYBIND11_NONLIMITEDAPI_LIB_PATH_RELATIVE_TO_PARENT_LIB_WITH_SLASH; \
+        return std::filesystem::path(info.dli_fname).parent_path() PYBIND11_NONLIMITEDAPI_SHIM_PATH_RELATIVE_TO_LIBRARY_DIR_WITH_SLASH; \
     }()
 #endif
 
