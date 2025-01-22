@@ -190,7 +190,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 #define PYBIND11_NONLIMITEDAPI_LIB_SUFFIX_FOR_MODULE nullptr
 #endif
 
-// This is a single `|`-separated string.
+// This is a single `@`-separated string.
 // Would normally use a comma-separated list of strings, but nvcc chokes on it (considers `-DA=B,C` to mean `-DA=B -DC`).
 #ifndef PYBIND11_NONLIMITEDAPI_SHIM_PATHS_RELATIVE_TO_LIBRARY_DIR
 #define PYBIND11_NONLIMITEDAPI_SHIM_PATHS_RELATIVE_TO_LIBRARY_DIR ""
@@ -240,7 +240,7 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
             {                                                                                     \
                 while (true)                                                                      \
                 {                                                                                 \
-                    auto pos = v.find_first_of('|'); /* Using a weird separator because nvcc chokes on commas (considers `-DA=B,C` to mean `-DA=B -DC`) */\
+                    auto pos = v.find_first_of('@'); /* Using a weird separator because nvcc chokes on commas (considers `-DA=B,C` to mean `-DA=B -DC`) */\
                     suffixes.emplace_back(v.substr(0, pos));                                      \
                     if (pos == std::string_view::npos)                                            \
                         break;                                                                    \
