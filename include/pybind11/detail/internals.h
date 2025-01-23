@@ -365,7 +365,7 @@ inline object get_python_state_dict() {
 #else
     PyInterpreterState *istate = non_limited_api::PyInterpreterState_Get();
     if (istate) {
-        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+        state_dict = reinterpret_borrow<object>(non_limited_api::PyInterpreterState_GetDict(istate));
     }
 #endif
     if (!state_dict) {

@@ -53,6 +53,7 @@ int         pybind11::non_limited_api::pybind11NLA_PyStatus_Exception       (con
 const char *pybind11::non_limited_api::pybind11NLA_PyStatus_get_err_msg     (const PyStatus_ *s)                               {return ((PyStatus *)s)->err_msg;}
 PyStatus_ * pybind11::non_limited_api::pybind11NLA_Py_InitializeFromConfig  (const PyConfig *config)                           {return (PyStatus_ *)new PyStatus(::Py_InitializeFromConfig(config));}
 int         pybind11::non_limited_api::pybind11NLA_PyGen_Check_             (PyObject *obj)                                    {return PyGen_Check(obj);}
+PyObject *  pybind11::non_limited_api::pybind11NLA_PyInterpreterState_GetDict(PyInterpreterState *state)                       {return ::PyInterpreterState_GetDict(state);}
 
 // -------- STATIC FUNCTIONS:
 
