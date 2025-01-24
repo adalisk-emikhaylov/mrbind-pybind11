@@ -511,7 +511,8 @@ struct error_fetch_and_normalize {
                             "of the original active exception type.");
         }
         m_lazy_error_string = exc_type_name_orig;
-#if PY_VERSION_HEX >= 0x030C0000
+// NOTE: Patching out this entirely for compatibility with all python versions.
+#if 0 && PY_VERSION_HEX >= 0x030C0000
         // The presence of __notes__ is likely due to exception normalization
         // errors, although that is not necessarily true, therefore insert a
         // hint only:
@@ -844,20 +845,7 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
 }
 
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
-#if PY_VERSION_HEX >= 0x030D0000
-    PyObject *rv;
-    if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
-        throw error_already_set();
-    }
-    return rv;
-#else
-    PyObject *rv = dict_getitemstring(v, key);
-    if (rv == nullptr && PyErr_Occurred()) {
-        throw error_already_set();
-    }
-    Py_XINCREF(rv);
-    return rv;
-#endif
+    return non_limited_api::dict_getitemstringref(v, key);
 }
 
 // Helper aliases/functions to support implicit casting of values given to python

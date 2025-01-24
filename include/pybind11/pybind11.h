@@ -1065,14 +1065,9 @@ using module = module_;
 /// Return a dictionary representing the global variables in the current execution frame,
 /// or ``__main__.__dict__`` if there is no frame (usually when the interpreter is embedded).
 inline dict globals() {
-#if PY_VERSION_HEX >= 0x030d0000
-    PyObject *p = PyEval_GetFrameGlobals();
-    return p ? reinterpret_steal<dict>(p)
-             : reinterpret_borrow<dict>(module_::import("__main__").attr("__dict__").ptr());
-#else
-    PyObject *p = PyEval_GetGlobals();
-    return reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
-#endif
+    dict ret;
+    non_limited_api::globals(ret);
+    return ret;
 }
 
 template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>

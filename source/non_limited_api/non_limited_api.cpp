@@ -1849,3 +1849,59 @@ PyInterpreterState *pybind11::non_limited_api::pybind11NLA_PyInterpreterState_Ge
     return ::PyInterpreterState_Get();
     #endif
 }
+
+int pybind11::non_limited_api::pybind11NLA_pybind11_traverse(PyObject *self, visitproc visit, void *arg)
+{
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_VisitManagedDict(self, visit, arg);
+#else
+    PyObject *&dict = *non_limited_api::_PyObject_GetDictPtr(self);
+    Py_VISIT(dict);
+#endif
+// https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
+#if PY_VERSION_HEX >= 0x03090000
+    Py_VISIT(Py_TYPE(self));
+#endif
+    return 0;
+}
+
+int pybind11::non_limited_api::pybind11NLA_pybind11_clear(PyObject *self)
+{
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_ClearManagedDict(self);
+#else
+    PyObject *&dict = *non_limited_api::_PyObject_GetDictPtr(self);
+    Py_CLEAR(dict);
+#endif
+    return 0;
+}
+
+void pybind11::non_limited_api::pybind11NLA_globals(dict &out)
+{
+#if PY_VERSION_HEX >= 0x030d0000
+    PyObject *p = PyEval_GetFrameGlobals();
+    out = p ? reinterpret_steal<dict>(p)
+             : reinterpret_borrow<dict>(module_::import("__main__").attr("__dict__").ptr());
+#else
+    PyObject *p = PyEval_GetGlobals();
+    out = reinterpret_borrow<dict>(p ? p : module_::import("__main__").attr("__dict__").ptr());
+#endif
+}
+
+PyObject *pybind11::non_limited_api::pybind11NLA_dict_getitemstringref(PyObject *v, const char *key)
+{
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject *rv;
+    if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    PyObject *rv = dict_getitemstring(v, key);
+    if (rv == nullptr && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    Py_XINCREF(rv);
+    return rv;
+#endif
+}

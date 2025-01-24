@@ -96,6 +96,7 @@ inline void precheck_interpreter() {
 #    define PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX (0x03080000)
 #endif
 
+// NOTE: Not patching out this use of `PY_VERSION_HEX` because we don't support versions <3.8, and I belive Pybind itself also doesn't anymore.
 #if PY_VERSION_HEX < PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
                                                 int argc,
@@ -127,6 +128,7 @@ inline void initialize_interpreter_pre_pyconfig(bool init_signal_handlers,
 
 PYBIND11_NAMESPACE_END(detail)
 
+// NOTE: Not patching out this use of `PY_VERSION_HEX` because we don't support versions <3.8, and I belive Pybind itself also doesn't anymore.
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 inline void initialize_interpreter(PyConfig *config,
                                    int argc = 0,
@@ -245,6 +247,7 @@ public:
         initialize_interpreter(init_signal_handlers, argc, argv, add_program_dir_to_path);
     }
 
+// NOTE: Not patching out this use of `PY_VERSION_HEX` because we don't support versions <3.8, and I belive Pybind itself also doesn't anymore.
 #if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
     explicit scoped_interpreter(PyConfig *config,
                                 int argc = 0,

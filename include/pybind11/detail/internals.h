@@ -37,7 +37,8 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
+// Hardcoding a same default value for compatibility with all python versions
+#    if 1 // PY_VERSION_HEX >= 0x030C0000 || defined(_MSC_VER)
 // Version bump for Python 3.12+, before first 3.12 beta release.
 // Version bump for MSVC piggy-backed on PR #4779. See comments there.
 #        ifdef Py_GIL_DISABLED

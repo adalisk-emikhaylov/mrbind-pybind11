@@ -42,6 +42,7 @@ class handle;
 class memoryview;
 struct buffer_info;
 struct InitializingFunctionRecordDeleter;
+class dict;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 class generic_type;
@@ -183,6 +184,10 @@ PYBIND11_NONLIMITEDAPI_FUNC(bool, PyObjectIsInstanceWithOneOfTpNames, (PyObject 
 PYBIND11_NONLIMITEDAPI_FUNC(int, PyGen_Check_, (PyObject *obj), (obj))
 PYBIND11_NONLIMITEDAPI_FUNC(PyInterpreterState *, PyInterpreterState_Get, (), ())
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyInterpreterState_GetDict, (PyInterpreterState *state), (state))
+PYBIND11_NONLIMITEDAPI_FUNC(int, pybind11_traverse, (PyObject *self, visitproc visit, void *arg), (self, visit, arg))
+PYBIND11_NONLIMITEDAPI_FUNC(int, pybind11_clear, (PyObject *self), (self))
+PYBIND11_NONLIMITEDAPI_FUNC(void, globals, (dict &out), (out))
+PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, dict_getitemstringref, (PyObject *v, const char *key), (v, key))
 
 PYBIND11_NAMESPACE_END(non_limited_api)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
