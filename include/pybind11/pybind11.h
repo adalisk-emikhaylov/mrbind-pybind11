@@ -1065,9 +1065,9 @@ using module = module_;
 /// Return a dictionary representing the global variables in the current execution frame,
 /// or ``__main__.__dict__`` if there is no frame (usually when the interpreter is embedded).
 inline dict globals() {
-    dict ret;
+    std::optional<dict> ret;
     non_limited_api::globals(ret);
-    return ret;
+    return ret.value();
 }
 
 template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>

@@ -186,7 +186,7 @@ PYBIND11_NONLIMITEDAPI_FUNC(PyInterpreterState *, PyInterpreterState_Get, (), ()
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, PyInterpreterState_GetDict, (PyInterpreterState *state), (state))
 PYBIND11_NONLIMITEDAPI_FUNC(int, pybind11_traverse, (PyObject *self, visitproc visit, void *arg), (self, visit, arg))
 PYBIND11_NONLIMITEDAPI_FUNC(int, pybind11_clear, (PyObject *self), (self))
-PYBIND11_NONLIMITEDAPI_FUNC(void, globals, (dict &out), (out))
+PYBIND11_NONLIMITEDAPI_FUNC(void, globals, (std::optional<dict> &out), (out))
 PYBIND11_NONLIMITEDAPI_FUNC(PyObject *, dict_getitemstringref, (PyObject *v, const char *key), (v, key))
 
 PYBIND11_NAMESPACE_END(non_limited_api)

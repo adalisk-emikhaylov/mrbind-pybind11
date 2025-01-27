@@ -1876,8 +1876,10 @@ int pybind11::non_limited_api::pybind11NLA_pybind11_clear(PyObject *self)
     return 0;
 }
 
-void pybind11::non_limited_api::pybind11NLA_globals(dict &out)
+void pybind11::non_limited_api::pybind11NLA_globals(std::optional<dict> &out)
 {
+    // Here we return via `std::optional`, since default-constructing the receiving dict is apparently not free as I hoped.
+
 #if PY_VERSION_HEX >= 0x030d0000
     PyObject *p = PyEval_GetFrameGlobals();
     out = p ? reinterpret_steal<dict>(p)
