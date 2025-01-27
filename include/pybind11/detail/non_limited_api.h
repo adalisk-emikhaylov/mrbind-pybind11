@@ -5,9 +5,10 @@
 #include "common.h"
 
 #include <filesystem>
+#include <optional>
 #include <string_view>
-#include <vector>
 #include <utility>
+#include <vector>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX 1
